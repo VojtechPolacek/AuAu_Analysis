@@ -43,6 +43,8 @@ std::vector<float> pt_vector;
 float c_px, c_py, c_pz, c_pt, c_E, c_phi, c_eta;
 int c_charge;
 int c_runid, c_eventid, c_ijet;
+int eec_ijet, eec_eventid, eec_runid;
+float eec_1, RL;
 
 const double CUT_AREA_02 = 0.07; // R = 0.2
 const double CUT_AREA_03 = 0.20; // R = 0.3
@@ -119,6 +121,8 @@ int StPicoHFJetMaker::InitJets() {
   fTreeRC.reserve(fR.size());
   fConstituentTreeRC.clear();
   fConstituentTreeRC.reserve(fR.size());
+  fEECTree.clear();
+  fEECTree.reserve(fR.size());
 
   for (size_t iR = 0; iR < fR.size(); ++iR) {
     const TString rName = Form("R%.1f", fR[iR]);
@@ -130,7 +134,9 @@ int StPicoHFJetMaker::InitJets() {
     treesC.reserve(3);
     std::vector<TTree*> ConstituentTreeC; // member of StPicoHFJetMaker
     ConstituentTreeC.reserve(3);
-
+    std::vector<TTree*> EECTreeC; // member of StPicoHFJetMaker
+    EECTreeC.reserve(3);
+    //ZKOUŠKA GITU
     // book three classes (central, midcentral, peripheral)
     for (int c3 = 1; c3 <= 3; ++c3) {
       TDirectory* cdir = rdir->mkdir(kCentTag[c3]);
@@ -189,12 +195,9 @@ int StPicoHFJetMaker::InitJets() {
 
       //Tree for EEC
       TTree* EECTree = new TTree("EECTree", "EEC");
-      int eec_ijet, eec_eventid, eec_runid;
       EECTree->Branch("ijet", &eec_ijet, "ijet/I");
       EECTree->Branch("runid", &eec_runid, "runid/I");
       EECTree->Branch("eventid", &eec_eventid, "eventid/I");
-
-      float eec_1, RL;
       EECTree->Branch("eec", &eec_1, "eec/F");
       EECTree->Branch("RL", &RL, "RL/F");
     }
@@ -531,8 +534,56 @@ for (unsigned int i = 0; i < fR.size(); i++) {
         //eta_vector.push_back(c_eta);
         //pt_vector.push_back(c_pt);
         //E_vector.push_back(c_E);
-
       }
+      /*
+      //Calculate EEC and RL
+    for (Long64_t h = 0; h < phi.size(); ++h) {
+      for (Long64_t j = 0; j < phi.size(); ++j) {
+        if (h == j) continue; // Don't compare with itself
+        // Calculate RL
+        eec_ijet = ijet;
+        eec_eventid = eventid;
+        eec_runid = runid;
+        double delta_phi = phi[h] - phi[j];
+        double delta_eta = eta[h] - eta[j];
+        RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
+        if (RL > 0.8) {
+          //cout << "BEFORE____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
+          if (delta_phi <= -TMath::Pi()) {
+             delta_phi = delta_phi + TMath::TwoPi();
+             RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
+          }
+          if (delta_phi >= TMath::Pi()) { 
+            delta_phi = delta_phi - TMath::TwoPi();
+            RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
+          }
+          //cout << "AFTER_____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
+        }
+        eec_1 = E[h] * E[j] / (pT_jet[eec_ijet] * pT_jet[eec_ijet]);
+        //hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
+        //if (RL > 0.8){ //just for number of wrong azimuthal angles
+        //  n++;
+        //}
+        EECTree->Fill();
+        if (pT_jet[ijet] >= 15 && pT_jet[ijet] < 20){
+          hEEC_15_20->Fill(RL, eec_1); // Fill histogram for 15-20 GeV/c jets
+          EEC_low += eec_1; // Sum EEC values for low pt
+        }
+        if (pT_jet[ijet]>= 20 && pT_jet[ijet] < 30){
+          hEEC_20_30->Fill(RL, eec_1); // Fill histogram for 20-30 GeV/c jets
+          EEC_mid += eec_1; // Sum EEC values for mid pt
+        }
+        if (pT_jet[ijet] >= 30 && pT_jet[ijet] < 50){
+          hEEC_30_50->Fill(RL, eec_1); // Fill histogram for 30-50 GeV/c jets
+          EEC_high += eec_1; // Sum EEC values fo high pt
+        }
+      }
+    }
+    ijet++;
+    phi.clear();
+    eta.clear();
+    E.clear();
+      */
     }
   }
 
