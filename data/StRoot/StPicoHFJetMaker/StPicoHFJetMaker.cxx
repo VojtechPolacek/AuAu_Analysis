@@ -136,7 +136,8 @@ int StPicoHFJetMaker::InitJets() {
     ConstituentTreeC.reserve(3);
     std::vector<TTree*> EECTreeC; // member of StPicoHFJetMaker
     EECTreeC.reserve(3);
-    //ZKOUŠKA GITU
+
+    //Delej neco
     // book three classes (central, midcentral, peripheral)
     for (int c3 = 1; c3 <= 3; ++c3) {
       TDirectory* cdir = rdir->mkdir(kCentTag[c3]);
