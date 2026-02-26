@@ -183,6 +183,8 @@ private:
     // fTreeRC[iR][iC] with iC = 0 (central), 1 (midcentral), 2 (peripheral)
   std::vector<std::vector<TTree*>> fTreeRC;
   std::vector<std::vector<TTree*>> fConstituentTreeRC; // member of StPicoHFJetMaker
+  std::vector<std::vector<TTree*>> fEECTreeRC; // member of StPicoHFJetMaker
+  std::vector<std::vector<TH1D*>> fHistEEC; // member of StPicoHFJetMaker
 
   // store 3-class mapping per event (0=undef, 1=central, 2=midcentral, 3=peripheral)
   int fCentrality3;

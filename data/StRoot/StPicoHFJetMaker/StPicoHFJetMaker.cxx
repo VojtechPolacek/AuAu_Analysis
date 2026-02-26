@@ -46,11 +46,23 @@ int c_runid, c_eventid, c_ijet;
 int eec_ijet, eec_eventid, eec_runid;
 float eec_1, RL;
 
+//Limits for R=0,4
+int N_bins = 37;
+double EEC_bounds[38] = {
+  0.0, 0.00500, 0.00571, 0.00653, 0.00746, 0.00853, 0.00975, 0.01114, 0.01273, 0.01455,
+  0.01663, 0.01901, 0.02172, 0.02482, 0.02837, 0.03242, 0.03706, 0.04235, 0.04840,
+  0.05531, 0.06321, 0.07225, 0.08257, 0.09436, 0.10784, 0.12325, 0.14085, 0.16098,
+  0.18397, 0.21000, 0.25000, 0.29748, 0.35373, 0.42030, 0.49905, 0.59239, 0.70321, 0.8
+};
+
+
 const double CUT_AREA_02 = 0.07; // R = 0.2
 const double CUT_AREA_03 = 0.20; // R = 0.3
 const double CUT_AREA_04 = 0.40; // R = 0.4
 
-const double CUT_NEUTRAL_FRACTION = 0.95;
+const double CUT_NEUTRAL_FRACTION = 0.95; 
+
+
 
 vector<MatchedJetPair> MatchJetsEtaPhi(const vector<MyJet> &McJets,
                                        const vector<MyJet> &RecoJets,
@@ -121,8 +133,16 @@ int StPicoHFJetMaker::InitJets() {
   fTreeRC.reserve(fR.size());
   fConstituentTreeRC.clear();
   fConstituentTreeRC.reserve(fR.size());
-  fEECTree.clear();
-  fEECTree.reserve(fR.size());
+  fEECTreeRC.clear();
+  fEECTreeRC.reserve(fR.size());
+  fHistEEC.clear();
+  fHistEEC.reserve(fR.size());
+  fHistEEC_15_20.clear();
+  fHistEEC_15_20.reserve(fR.size());
+  fHistEEC_20_30.clear();
+  fHistEEC_20_30.reserve(fR.size());
+  fHistEEC_30_50.clear();
+  fHistEEC_30_50.reserve(fR.size());
 
   for (size_t iR = 0; iR < fR.size(); ++iR) {
     const TString rName = Form("R%.1f", fR[iR]);
@@ -136,14 +156,23 @@ int StPicoHFJetMaker::InitJets() {
     ConstituentTreeC.reserve(3);
     std::vector<TTree*> EECTreeC; // member of StPicoHFJetMaker
     EECTreeC.reserve(3);
+    std::vector<TH1D*> Hist_EEC_C; // member of StPicoHFJetMaker
+    Hist_EEC_C.reserve(3);
+    std::vector<TH1D*> Hist_EEC_C_15_20; // member of StPicoHFJetMaker
+    Hist_EEC_C_15_20.reserve(3);
+    std::vector<TH1D*> Hist_EEC_C_20_30; // member of StPicoHFJetMaker
+    Hist_EEC_C_20_30.reserve(3);
+    std::vector<TH1D*> Hist_EEC_C_30_50; // member of StPicoHFJetMaker
+    Hist_EEC_C_30_50.reserve(3);
 
-    //Delej neco
     // book three classes (central, midcentral, peripheral)
     for (int c3 = 1; c3 <= 3; ++c3) {
       TDirectory* cdir = rdir->mkdir(kCentTag[c3]);
       if (!cdir) cdir = (TDirectory*)rdir->Get(kCentTag[c3]);
       cdir->cd();
       
+      //ATH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds);
+
       // ---- TTree per (R,class); NO centrality branch
       TTree* jetTree = new TTree("JetTree", "JetTree");
       jetTree->Branch("runId", &fRunNumber, "runId/I");
@@ -175,8 +204,6 @@ int StPicoHFJetMaker::InitJets() {
 
       treesC.push_back(jetTree);
 
-      rdir->cd(); // back up for next class
-
       TTree* constituentTree = new TTree("ConstituentTree", "Jet Constituents");
       constituentTree->Branch("runid", &c_runid, "runid/I");
       constituentTree->Branch("eventid", &c_eventid, "eventid/I");
@@ -201,10 +228,26 @@ int StPicoHFJetMaker::InitJets() {
       EECTree->Branch("eventid", &eec_eventid, "eventid/I");
       EECTree->Branch("eec", &eec_1, "eec/F");
       EECTree->Branch("RL", &RL, "RL/F");
+
+      EECTreeC.push_back(EECTree);
+
+      TH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds);
+      Hist_EEC_C.push_back(hEEC);
+      TH1D* hEEC_15_20 = new TH1D("hEEC_15_20", "EEC vs RL for 15<=pT<20;RL;EEC", N_bins, EEC_bounds);
+      Hist_EEC_C_15_20.push_back(hEEC_15_20);
+      TH1D* hEEC_20_30 = new TH1D("hEEC_20_30", "EEC vs RL for 20<=pT<30;RL;EEC", N_bins, EEC_bounds);
+      Hist_EEC_C_20_30.push_back(hEEC_20_30);
+      TH1D* hEEC_30_50 = new TH1D("hEEC_30_50", "EEC vs RL for 30<=pT<50;RL;EEC", N_bins, EEC_bounds);
+      Hist_EEC_C_30_50.push_back(hEEC_30_50);
+
+      rdir->cd();
     }
 
-    fConstituentTreeRC.push_back(ConstituentTreeC);
     fTreeRC.push_back(treesC);
+    fConstituentTreeRC.push_back(ConstituentTreeC);
+    fEECTreeRC.push_back(EECTreeC);
+    fHistEEC.push_back(Hist_EEC_C);
+   
     fileDir->cd();
   }
 
@@ -243,6 +286,18 @@ for (size_t iR = 0; iR < nR; ++iR) {
       fConstituentTreeRC[iR][ciTree]) {
       fConstituentTreeRC[iR][ciTree]->Write();
     }
+
+    if (iR < fEECTreeRC.size() && ciTree >= 0 &&
+      ciTree < (int)fEECTreeRC[iR].size() &&
+      fEECTreeRC[iR][ciTree]) {
+      fEECTreeRC[iR][ciTree]->Write();
+      }
+
+    if (iR < fHistEEC.size() && ciTree >= 0 &&
+      ciTree < (int)fHistEEC[iR].size() &&
+      fHistEEC[iR][ciTree]) {
+      fHistEEC[iR][ciTree]->Write();
+      }
   } // c3
 }   // iR
   fileDir->cd();
@@ -506,6 +561,14 @@ for (unsigned int i = 0; i < fR.size(); i++) {
   if (i < fConstituentTreeRC.size() && ciTree >= 0 && ciTree < (int)fConstituentTreeRC[i].size())
     constituentTree = fConstituentTreeRC[i][ciTree];
 
+  TTree* try_EECTree = 0;
+  if (i < fEECTreeRC.size() && ciTree >= 0 && ciTree < (int)fEECTreeRC[i].size())
+    try_EECTree = fEECTreeRC[i][ciTree];
+
+  TH1D* hEEC = 0;
+  if (i < fHistEEC.size() && ciTree >= 0 && ciTree < (int)fHistEEC[i].size())
+    hEEC = fHistEEC[i][ciTree];
+
   std::vector<MyJet> myRecoJets;
   if (!vetoReco && !fullTracks.empty()) {
     fastjet::ClusterSequenceArea reco_cluster_seq(fullTracks, jet_def, area_def);
@@ -531,22 +594,24 @@ for (unsigned int i = 0; i < fR.size(); i++) {
         c_phi = c.phi();
 
         constituentTree->Fill();
-        //phi_vector.push_back(c_phi);
-        //eta_vector.push_back(c_eta);
+
+        // !!!! Have to use only charged constituents for EEC calculation !!!!
+        phi_vector.push_back(c_phi);
+        eta_vector.push_back(c_eta);
         //pt_vector.push_back(c_pt);
-        //E_vector.push_back(c_E);
+        E_vector.push_back(c_E);
       }
-      /*
+      
       //Calculate EEC and RL
-    for (Long64_t h = 0; h < phi.size(); ++h) {
-      for (Long64_t j = 0; j < phi.size(); ++j) {
-        if (h == j) continue; // Don't compare with itself
+    for (Long64_t h = 0; h < phi_vector.size(); ++h) {
+      for (Long64_t k = h+1; k < phi_vector.size(); ++k) {
+        if (h == k) continue; // Don't compare with itself
         // Calculate RL
-        eec_ijet = ijet;
-        eec_eventid = eventid;
-        eec_runid = runid;
-        double delta_phi = phi[h] - phi[j];
-        double delta_eta = eta[h] - eta[j];
+        eec_ijet = j;
+        eec_eventid = fEventId;
+        eec_runid = fRunNumber;
+        double delta_phi = phi_vector[h] - phi_vector[k];
+        double delta_eta = eta_vector[h] - eta_vector[k];
         RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
         if (RL > 0.8) {
           //cout << "BEFORE____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
@@ -560,31 +625,34 @@ for (unsigned int i = 0; i < fR.size(); i++) {
           }
           //cout << "AFTER_____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
         }
-        eec_1 = E[h] * E[j] / (pT_jet[eec_ijet] * pT_jet[eec_ijet]);
+        eec_1 = E_vector[h] * E_vector[k] / (RecoJets[j].perp() * RecoJets[j].perp());
         //hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
         //if (RL > 0.8){ //just for number of wrong azimuthal angles
         //  n++;
         //}
-        EECTree->Fill();
-        if (pT_jet[ijet] >= 15 && pT_jet[ijet] < 20){
+        try_EECTree->Fill();
+        hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
+        
+        /*
+        if (pT_jet[eec_ijet] >= 15 && pT_jet[eec_ijet] < 20){
           hEEC_15_20->Fill(RL, eec_1); // Fill histogram for 15-20 GeV/c jets
           EEC_low += eec_1; // Sum EEC values for low pt
         }
-        if (pT_jet[ijet]>= 20 && pT_jet[ijet] < 30){
+        if (pT_jet[eec_ijet]>= 20 && pT_jet[eec_ijet] < 30){
           hEEC_20_30->Fill(RL, eec_1); // Fill histogram for 20-30 GeV/c jets
           EEC_mid += eec_1; // Sum EEC values for mid pt
         }
-        if (pT_jet[ijet] >= 30 && pT_jet[ijet] < 50){
+        if (pT_jet[eec_ijet] >= 30 && pT_jet[eec_ijet] < 50){
           hEEC_30_50->Fill(RL, eec_1); // Fill histogram for 30-50 GeV/c jets
           EEC_high += eec_1; // Sum EEC values fo high pt
+
         }
+        */
       }
     }
-    ijet++;
-    phi.clear();
-    eta.clear();
-    E.clear();
-      */
+    phi_vector.clear();
+    eta_vector.clear();
+    E_vector.clear();
     }
   }
 
