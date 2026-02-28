@@ -45,6 +45,7 @@ int c_charge;
 int c_runid, c_eventid, c_ijet;
 int eec_ijet, eec_eventid, eec_runid;
 float eec_1, RL;
+float EEC_low, EEC_mid, EEC_high;
 
 //Limits for R=0,4
 int N_bins = 37;
@@ -231,6 +232,7 @@ int StPicoHFJetMaker::InitJets() {
 
       EECTreeC.push_back(EECTree);
 
+      //Histograms for EEC
       TH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds);
       Hist_EEC_C.push_back(hEEC);
       TH1D* hEEC_15_20 = new TH1D("hEEC_15_20", "EEC vs RL for 15<=pT<20;RL;EEC", N_bins, EEC_bounds);
@@ -247,7 +249,10 @@ int StPicoHFJetMaker::InitJets() {
     fConstituentTreeRC.push_back(ConstituentTreeC);
     fEECTreeRC.push_back(EECTreeC);
     fHistEEC.push_back(Hist_EEC_C);
-   
+    fHistEEC_15_20.push_back(Hist_EEC_C_15_20);
+    fHistEEC_20_30.push_back(Hist_EEC_C_20_30);
+    fHistEEC_30_50.push_back(Hist_EEC_C_30_50);
+
     fileDir->cd();
   }
 
@@ -291,13 +296,50 @@ for (size_t iR = 0; iR < nR; ++iR) {
       ciTree < (int)fEECTreeRC[iR].size() &&
       fEECTreeRC[iR][ciTree]) {
       fEECTreeRC[iR][ciTree]->Write();
-      }
+    }
 
     if (iR < fHistEEC.size() && ciTree >= 0 &&
       ciTree < (int)fHistEEC[iR].size() &&
       fHistEEC[iR][ciTree]) {
       fHistEEC[iR][ciTree]->Write();
-      }
+    }
+    
+    if (iR < fHistEEC_15_20.size() && ciTree >= 0 &&
+      ciTree < (int)fHistEEC_15_20[iR].size() &&
+      fHistEEC_15_20[iR][ciTree]) {
+      fHistEEC_15_20[iR][ciTree]->Write();
+    }
+    
+    if (iR < fHistEEC_20_30.size() && ciTree >= 0 &&
+      ciTree < (int)fHistEEC_20_30[iR].size() &&
+      fHistEEC_20_30[iR][ciTree]) {
+      fHistEEC_20_30[iR][ciTree]->Write();
+    }
+    
+    if (iR < fHistEEC_30_50.size() && ciTree >= 0 &&
+      ciTree < (int)fHistEEC_30_50[iR].size() &&
+      fHistEEC_30_50[iR][ciTree]) {
+      fHistEEC_30_50[iR][ciTree]->Write();
+    }
+    
+    // --- Normalize histograms for each R and centrality
+    if (iR < fHistEEC_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_15_20[iR].size()) {
+        TH1D* h = fHistEEC_15_20[iR][ciTree];
+        double integral = h->Integral("width"); // includes bin width automatically
+        if (integral > 0) h->Scale(1.0 / integral);
+    }
+
+    if (iR < fHistEEC_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_20_30[iR].size()) {
+        TH1D* h = fHistEEC_20_30[iR][ciTree];
+        double integral = h->Integral("width");
+       if (integral > 0) h->Scale(1.0 / integral);
+    }
+
+    if (iR < fHistEEC_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_30_50[iR].size()) {
+        TH1D* h = fHistEEC_30_50[iR][ciTree];
+        double integral = h->Integral("width");
+        if (integral > 0) h->Scale(1.0 / integral);
+    }
   } // c3
 }   // iR
   fileDir->cd();
@@ -493,17 +535,18 @@ for (unsigned int i = 0; i < mIdxPicoParticles.size(); i++) {
   float dca = (mPrimVtx - trk->origin()).Mag();
 
   float charged = trk->charge();
-  (void)dca; (void)charged;
+  (void)dca; // to avoid unused variable warning if not used in cuts
 
   fastjet::PseudoJet pj(p.x(), p.y(), p.z(), p.Mag());
-
+  pj.set_user_index(charged); // for reco tracks, user_index = charge (will be 0 for neutrals from towers)
+/*
   if (mIsEmbedding) {
     if (trk->qaTruth() > 95) pj.set_user_index(trk->idTruth() - 1);
     else                     pj.set_user_index(trk->charge() ? 1 : 0);
   } else {
     pj.set_user_index(trk->charge() ? 1 : 0);
-  }
-
+  } 
+  */
   jetTracks.push_back(pj);
 
 } // end loop over primary tracks
@@ -551,6 +594,10 @@ for (unsigned int i = 0; i < fR.size(); i++) {
   fastjet::JetDefinition jet_def(fastjet::antikt_algorithm, fR[i]);
   float maxRapJet = 1 - fR[i];
 
+  EEC_low = 0.0;
+  EEC_mid = 0.0;
+  EEC_high = 0.0;
+
   //==============================Reco jets===============================//
   TTree* jetTree = 0;
   const int ciTree = c3 - 1;
@@ -569,6 +616,20 @@ for (unsigned int i = 0; i < fR.size(); i++) {
   if (i < fHistEEC.size() && ciTree >= 0 && ciTree < (int)fHistEEC[i].size())
     hEEC = fHistEEC[i][ciTree];
 
+  TH1D* hEEC_15_20 = 0;
+  if (i < fHistEEC_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_15_20[i].size())
+    hEEC_15_20 = fHistEEC_15_20[i][ciTree];
+  
+  TH1D* hEEC_20_30 = 0;
+  if (i < fHistEEC_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_20_30[i].size())
+    hEEC_20_30 = fHistEEC_20_30[i][ciTree];
+
+  TH1D* hEEC_30_50 = 0;
+  if (i < fHistEEC_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_30_50[i].size())
+    hEEC_30_50 = fHistEEC_30_50[i][ciTree];
+
+  
+  
   std::vector<MyJet> myRecoJets;
   if (!vetoReco && !fullTracks.empty()) {
     fastjet::ClusterSequenceArea reco_cluster_seq(fullTracks, jet_def, area_def);
@@ -592,14 +653,16 @@ for (unsigned int i = 0; i < fR.size(); i++) {
         c_E = c.E();
         c_eta = c.eta();
         c_phi = c.phi();
+        c_charge = c.user_index(); // Use user_index to store charge information
 
+      
         constituentTree->Fill();
-
-        // !!!! Have to use only charged constituents for EEC calculation !!!!
-        phi_vector.push_back(c_phi);
-        eta_vector.push_back(c_eta);
-        //pt_vector.push_back(c_pt);
-        E_vector.push_back(c_E);
+        if (c_charge != 0){
+          phi_vector.push_back(c_phi);
+          eta_vector.push_back(c_eta);
+          //pt_vector.push_back(c_pt);
+          E_vector.push_back(c_E);
+        }; // Skip neutral constituents
       }
       
       //Calculate EEC and RL
@@ -612,6 +675,7 @@ for (unsigned int i = 0; i < fR.size(); i++) {
         eec_runid = fRunNumber;
         double delta_phi = phi_vector[h] - phi_vector[k];
         double delta_eta = eta_vector[h] - eta_vector[k];
+
         RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
         if (RL > 0.8) {
           //cout << "BEFORE____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
@@ -626,36 +690,55 @@ for (unsigned int i = 0; i < fR.size(); i++) {
           //cout << "AFTER_____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
         }
         eec_1 = E_vector[h] * E_vector[k] / (RecoJets[j].perp() * RecoJets[j].perp());
-        //hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
-        //if (RL > 0.8){ //just for number of wrong azimuthal angles
-        //  n++;
-        //}
         try_EECTree->Fill();
-        hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
-        
-        /*
-        if (pT_jet[eec_ijet] >= 15 && pT_jet[eec_ijet] < 20){
-          hEEC_15_20->Fill(RL, eec_1); // Fill histogram for 15-20 GeV/c jets
-          EEC_low += eec_1; // Sum EEC values for low pt
-        }
-        if (pT_jet[eec_ijet]>= 20 && pT_jet[eec_ijet] < 30){
-          hEEC_20_30->Fill(RL, eec_1); // Fill histogram for 20-30 GeV/c jets
-          EEC_mid += eec_1; // Sum EEC values for mid pt
-        }
-        if (pT_jet[eec_ijet] >= 30 && pT_jet[eec_ijet] < 50){
-          hEEC_30_50->Fill(RL, eec_1); // Fill histogram for 30-50 GeV/c jets
-          EEC_high += eec_1; // Sum EEC values fo high pt
 
+
+        hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
+        if (RecoJets[j].perp()>= 15 && RecoJets[j].perp() < 20){
+          hEEC_15_20->Fill(RL, eec_1); // Fill histogram for 15-20 GeV/c jets
+          EEC_low = EEC_low + eec_1;
         }
-        */
+        if (RecoJets[j].perp()>= 20 && RecoJets[j].perp() < 30){
+          hEEC_20_30->Fill(RL, eec_1); // Fill histogram for 20-30 GeV/c jets
+          EEC_mid = EEC_mid + eec_1;
+        }
+        if (RecoJets[j].perp() >= 30 && RecoJets[j].perp() < 50){
+          hEEC_30_50->Fill(RL, eec_1); // Fill histogram for 30-50 GeV/c jets
+          EEC_high = EEC_high + eec_1;
+        }
       }
     }
+
     phi_vector.clear();
     eta_vector.clear();
     E_vector.clear();
     }
   }
+/*
+  if (EEC_low > 0){
+    for (int o = 1; o <= hEEC_15_20->GetNbinsX(); o++) {
+      float bin_content = hEEC_15_20->GetBinContent(o);
+      float bin_width = hEEC_15_20->GetBinWidth(o);
+      hEEC_15_20->SetBinContent(o, bin_content/(EEC_low*bin_width));
+    }
+  }
 
+  if (EEC_mid > 0){
+    for (int o = 1; o <= hEEC_20_30->GetNbinsX(); o++) {
+      float bin_content = hEEC_20_30->GetBinContent(o);
+      float bin_width = hEEC_20_30->GetBinWidth(o);
+      hEEC_20_30->SetBinContent(o, bin_content/(EEC_mid*bin_width));
+    }
+  }
+
+  if (EEC_high > 0){
+    for (int o = 1; o <= hEEC_30_50->GetNbinsX(); o++) {
+      float bin_content = hEEC_30_50->GetBinContent(o);
+      float bin_width = hEEC_30_50->GetBinWidth(o);
+      hEEC_30_50->SetBinContent(o, bin_content/(EEC_high*bin_width));
+    }
+  }
+*/
   if (ptMaxVeto > 0.0 && !vetoReco && !fullTracks.empty()) {
   for (size_t jr = 0; jr < myRecoJets.size(); ++jr) {
     if (myRecoJets[jr].pt_corr > ptMaxVeto) {
