@@ -47,9 +47,23 @@ int eec_ijet, eec_eventid, eec_runid;
 float eec_1, RL;
 float EEC_low, EEC_mid, EEC_high;
 
+//Limits for R=0,2
+int N_bins_02 = 17;
+
+double EEC_bounds_02[18] = {
+  0.0, 0.00500, 0.00571, 0.00653, 0.00746, 0.00853, 0.00975, 0.01114, 
+  0.01273, 0.01455, 0.01663, 0.01901, 0.02172, 0.02482, 0.02837,
+  0.03242, 0.03706, 0.04};
+
+//Limits for R=0,3
+int N_bins_03 = 37;
+double EEC_bounds_03[38] = {0.0, 0.005, 0.00571, 0.00653, 0.00746, 0.00853, 0.00975, 0.01114, 0.01273, 0.01455, 0.01663, 0.01901, 0.02172, 0.02482, 0.02837, 0.03242, 0.03706, 0.04235, 0.04840, 0.05531, 0.06321, 0.07225, 0.08257, 0.09436, 0.10784, 0.12325, 0.14085, 0.16098, 0.18397, 0.21025, 0.24029, 0.27462, 0.31385, 0.35868, 0.40992, 0.46849, 0.53541,0.6};
+  
+
+
 //Limits for R=0,4
-int N_bins = 37;
-double EEC_bounds[38] = {
+int N_bins_04 = 37;
+double EEC_bounds_04[38] = {
   0.0, 0.00500, 0.00571, 0.00653, 0.00746, 0.00853, 0.00975, 0.01114, 0.01273, 0.01455,
   0.01663, 0.01901, 0.02172, 0.02482, 0.02837, 0.03242, 0.03706, 0.04235, 0.04840,
   0.05531, 0.06321, 0.07225, 0.08257, 0.09436, 0.10784, 0.12325, 0.14085, 0.16098,
@@ -151,6 +165,20 @@ int StPicoHFJetMaker::InitJets() {
     if (!rdir) rdir = (TDirectory*)fileDir->Get(rName);
     rdir->cd();
 
+    int nBinsEEC = 0;
+    double* EEC_bounds = nullptr;
+
+    if(std::abs(fR[iR] - 0.2) < 1e-3) {
+      nBinsEEC = N_bins_02;
+      EEC_bounds = EEC_bounds_02;
+    } else if(std::abs(fR[iR] - 0.3) < 1e-3) {
+      nBinsEEC = N_bins_03;
+      EEC_bounds = EEC_bounds_03;
+    } else(std::abs(fR[iR] - 0.4) < 1e-3) {
+      nBinsEEC = N_bins_04;
+      EEC_bounds = EEC_bounds_04;
+    }
+
     std::vector<TTree*> treesC;  // 3 classes: 1..3 (we'll index 0..2)
     treesC.reserve(3);
     std::vector<TTree*> ConstituentTreeC; // member of StPicoHFJetMaker
@@ -233,13 +261,13 @@ int StPicoHFJetMaker::InitJets() {
       EECTreeC.push_back(EECTree);
 
       //Histograms for EEC
-      TH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds);
-      Hist_EEC_C.push_back(hEEC);
-      TH1D* hEEC_15_20 = new TH1D("hEEC_15_20", "EEC vs RL for 15<=pT<20;RL;EEC", N_bins, EEC_bounds);
+      //TH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds);
+      //Hist_EEC_C.push_back(hEEC);
+      TH1D* hEEC_15_20 = new TH1D("hEEC_15_20", "EEC vs RL for 15<=pT<20;RL;EEC", nBinsEEC, EEC_bounds);
       Hist_EEC_C_15_20.push_back(hEEC_15_20);
-      TH1D* hEEC_20_30 = new TH1D("hEEC_20_30", "EEC vs RL for 20<=pT<30;RL;EEC", N_bins, EEC_bounds);
+      TH1D* hEEC_20_30 = new TH1D("hEEC_20_30", "EEC vs RL for 20<=pT<30;RL;EEC", nBinsEEC, EEC_bounds);
       Hist_EEC_C_20_30.push_back(hEEC_20_30);
-      TH1D* hEEC_30_50 = new TH1D("hEEC_30_50", "EEC vs RL for 30<=pT<50;RL;EEC", N_bins, EEC_bounds);
+      TH1D* hEEC_30_50 = new TH1D("hEEC_30_50", "EEC vs RL for 30<=pT<50;RL;EEC", nBinsEEC, EEC_bounds);
       Hist_EEC_C_30_50.push_back(hEEC_30_50);
 
       rdir->cd();
@@ -297,7 +325,26 @@ for (size_t iR = 0; iR < nR; ++iR) {
       fEECTreeRC[iR][ciTree]) {
       fEECTreeRC[iR][ciTree]->Write();
     }
+/*
+    // --- Normalize histograms for each R and centrality
+    if (iR < fHistEEC_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_15_20[iR].size()) {
+        TH1D* h = fHistEEC_15_20[iR][ciTree];
+        double integral = h->Integral("width"); // includes bin width automatically
+        if (integral > 0) h->Scale(1.0 / integral);
+    }
 
+    if (iR < fHistEEC_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_20_30[iR].size()) {
+        TH1D* h = fHistEEC_20_30[iR][ciTree];
+        double integral = h->Integral("width");
+       if (integral > 0) h->Scale(1.0 / integral);
+    }
+
+    if (iR < fHistEEC_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_30_50[iR].size()) {
+        TH1D* h = fHistEEC_30_50[iR][ciTree];
+        double integral = h->Integral("width");
+        if (integral > 0) h->Scale(1.0 / integral);
+    }
+*/
     if (iR < fHistEEC.size() && ciTree >= 0 &&
       ciTree < (int)fHistEEC[iR].size() &&
       fHistEEC[iR][ciTree]) {
@@ -320,25 +367,6 @@ for (size_t iR = 0; iR < nR; ++iR) {
       ciTree < (int)fHistEEC_30_50[iR].size() &&
       fHistEEC_30_50[iR][ciTree]) {
       fHistEEC_30_50[iR][ciTree]->Write();
-    }
-    
-    // --- Normalize histograms for each R and centrality
-    if (iR < fHistEEC_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_15_20[iR].size()) {
-        TH1D* h = fHistEEC_15_20[iR][ciTree];
-        double integral = h->Integral("width"); // includes bin width automatically
-        if (integral > 0) h->Scale(1.0 / integral);
-    }
-
-    if (iR < fHistEEC_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_20_30[iR].size()) {
-        TH1D* h = fHistEEC_20_30[iR][ciTree];
-        double integral = h->Integral("width");
-       if (integral > 0) h->Scale(1.0 / integral);
-    }
-
-    if (iR < fHistEEC_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_30_50[iR].size()) {
-        TH1D* h = fHistEEC_30_50[iR][ciTree];
-        double integral = h->Integral("width");
-        if (integral > 0) h->Scale(1.0 / integral);
     }
   } // c3
 }   // iR
@@ -612,9 +640,9 @@ for (unsigned int i = 0; i < fR.size(); i++) {
   if (i < fEECTreeRC.size() && ciTree >= 0 && ciTree < (int)fEECTreeRC[i].size())
     try_EECTree = fEECTreeRC[i][ciTree];
 
-  TH1D* hEEC = 0;
-  if (i < fHistEEC.size() && ciTree >= 0 && ciTree < (int)fHistEEC[i].size())
-    hEEC = fHistEEC[i][ciTree];
+  //TH1D* hEEC = 0;
+  //if (i < fHistEEC.size() && ciTree >= 0 && ciTree < (int)fHistEEC[i].size())
+    //hEEC = fHistEEC[i][ciTree];
 
   TH1D* hEEC_15_20 = 0;
   if (i < fHistEEC_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_15_20[i].size())
@@ -693,7 +721,7 @@ for (unsigned int i = 0; i < fR.size(); i++) {
         try_EECTree->Fill();
 
 
-        hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
+        //hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
         if (RecoJets[j].perp()>= 15 && RecoJets[j].perp() < 20){
           hEEC_15_20->Fill(RL, eec_1); // Fill histogram for 15-20 GeV/c jets
           EEC_low = EEC_low + eec_1;
