@@ -174,7 +174,7 @@ int StPicoHFJetMaker::InitJets() {
     } else if(std::abs(fR[iR] - 0.3) < 1e-3) {
       nBinsEEC = N_bins_03;
       EEC_bounds = EEC_bounds_03;
-    } else(std::abs(fR[iR] - 0.4) < 1e-3) {
+    } else if(std::abs(fR[iR] - 0.4) < 1e-3) {
       nBinsEEC = N_bins_04;
       EEC_bounds = EEC_bounds_04;
     }
