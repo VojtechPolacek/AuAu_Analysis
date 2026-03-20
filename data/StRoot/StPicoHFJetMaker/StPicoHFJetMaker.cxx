@@ -46,6 +46,7 @@ int c_runid, c_eventid, c_ijet;
 int eec_ijet, eec_eventid, eec_runid;
 float eec_1, RL;
 float EEC_low, EEC_mid, EEC_high;
+ 
 
 //Limits for R=0,2
 int N_bins_02 = 33;
@@ -147,8 +148,6 @@ int StPicoHFJetMaker::InitJets() {
   TDirectory* fileDir = gDirectory;
   fTreeRC.clear();
   fTreeRC.reserve(fR.size());
-  fChargedJetTreeRC.clear();
-  fChargedJetTreeRC.reserve(fR.size());
   fConstituentTreeRC.clear();
   fConstituentTreeRC.reserve(fR.size());
   fEECTreeRC.clear();
@@ -188,8 +187,6 @@ int StPicoHFJetMaker::InitJets() {
 
     std::vector<TTree*> treesC;  // 3 classes: 1..3 (we'll index 0..2)
     treesC.reserve(3);
-    //std::vector<TTree*> chargedTreesC;  // 3 classes: 1..3 (we'll index 0..2)
-    //chargedTreesC.reserve(3);
     std::vector<TTree*> ConstituentTreeC; // member of StPicoHFJetMaker
     ConstituentTreeC.reserve(3);
     std::vector<TTree*> EECTreeC; // member of StPicoHFJetMaker
@@ -241,40 +238,13 @@ int StPicoHFJetMaker::InitJets() {
       jetTree->Branch("reco_rho", &fRecoJet.rho, "reco_rho/F");
       jetTree->Branch("reco_pt_lead", &fRecoJet.pt_lead, "reco_pt_lead/F");
       jetTree->Branch("reco_n_constituents", &fRecoJet.n_constituents, "reco_n_constituents/I");
+      jetTree->Branch("reco_n_constituents_real", &fRecoJet.n_constituents_real, "reco_n_constituents_real/I");
       jetTree->Branch("reco_neutral_fraction", &fRecoJet.neutral_fraction, "reco_neutral_fraction/F");
       jetTree->Branch("reco_trigger_match", &fRecoJet.trigger_match, "reco_trigger_match/O");
 
       treesC.push_back(jetTree);
-/*
-      TTree* chargedJetTree = new TTree("ChargedJetTree", "Charged Jet Tree");
-      chargedJetTree->Branch("runId", &fRunNumber, "runId/I");
-      chargedJetTree->Branch("eventId", &fEventId,   "eventId/I");
-      chargedJetTree->Branch("centralityWeight", &fCentralityWeight, "centralityWeight/F"); 
-      if (mIsEmbedding) {
-        chargedJetTree->Branch("xsecWeight", &fXsecWeight, "xsecWeight/F");
-        chargedJetTree->Branch("deltaR", &fDeltaR, "deltaR/F");
-        chargedJetTree->Branch("mc_pt", &fMcJet.pt, "mc_pt/F");
-        chargedJetTree->Branch("mc_eta", &fMcJet.eta, "mc_eta/F");
-        chargedJetTree->Branch("mc_phi", &fMcJet.phi, "mc_phi/F");
-        chargedJetTree->Branch("mc_area", &fMcJet.area, "mc_area/F");
-        chargedJetTree->Branch("mc_pt_lead", &fMcJet.pt_lead, "mc_pt_lead/F");
-        chargedJetTree->Branch("mc_n_constituents", &fMcJet.n_constituents, "mc_n_constituents/I");
-        chargedJetTree->Branch("mc_neutral_fraction", &fMcJet.neutral_fraction, "mc_neutral_fraction/F");
-        chargedJetTree->Branch("mc_sum_pt", &fMcSumPt, "mc_sum_pt/F");
-      }
-      chargedJetTree->Branch("reco_pt", &fRecoJet.pt, "reco_pt/F");
-      chargedJetTree->Branch("reco_pt_corr", &fRecoJet.pt_corr, "reco_pt_corr/F");
-      chargedJetTree->Branch("reco_eta", &fRecoJet.eta, "reco_eta/F");
-      chargedJetTree->Branch("reco_phi", &fRecoJet.phi, "reco_phi/F");
-      chargedJetTree->Branch("reco_area", &fRecoJet.area, "reco_area/F");
-      chargedJetTree->Branch("reco_rho", &fRecoJet.rho, "reco_rho/F");
-      chargedJetTree->Branch("reco_pt_lead", &fRecoJet.pt_lead, "reco_pt_lead/F");
-      chargedJetTree->Branch("reco_n_constituents", &fRecoJet.n_constituents, "reco_n_constituents/I");
-      chargedJetTree->Branch("reco_neutral_fraction", &fRecoJet.neutral_fraction, "reco_neutral_fraction/F");
-      chargedJetTree->Branch("reco_trigger_match", &fRecoJet.trigger_match, "reco_trigger_match/O");
-    
-      chargedTreesC.push_back(chargedJetTree);
-*/
+      
+
       TTree* constituentTree = new TTree("ConstituentTree", "Jet Constituents");
       constituentTree->Branch("runid", &c_runid, "runid/I");
       constituentTree->Branch("eventid", &c_eventid, "eventid/I");
@@ -361,13 +331,7 @@ for (size_t iR = 0; iR < nR; ++iR) {
         fTreeRC[iR][ciTree]) {
       fTreeRC[iR][ciTree]->Write();
     }
-/*
-    if(iR < fChargedJetTreeRC.size() && ciTree >= 0 &&
-      ciTree < (int)fChargedJetTreeRC[iR].size() &&
-      fChargedJetTreeRC[iR][ciTree]) {
-      fChargedJetTreeRC[iR][ciTree]->Write();
-    }
-*/
+
     if (iR < fConstituentTreeRC.size() && ciTree >= 0 &&
       ciTree < (int)fConstituentTreeRC[iR].size() &&
       fConstituentTreeRC[iR][ciTree]) {
@@ -770,7 +734,7 @@ for (unsigned int i = 0; i < fR.size(); i++) {
 
       
         constituentTree->Fill();
-        if (c_charge != 0 && c_pt > 0.07){
+        if (c_charge != 0 && c_pt > 0.1){
           phi_vector.push_back(c_phi);
           eta_vector.push_back(c_eta);
           pt_vector.push_back(c_pt);

@@ -17,12 +17,13 @@ public:
   float rho;
   float pt_lead;
   int n_constituents;
+  int n_constituents_real;
   float neutral_fraction;
   bool trigger_match;
 
   MyJet()
       : pt(-999), pt_corr(-999), eta(-999), phi(-999), area(-999), rho(-999), pt_lead(-999),
-        n_constituents(-999), neutral_fraction(-999), trigger_match(false) {}
+        n_constituents(-999), n_constituents_real(-999), neutral_fraction(-999), trigger_match(false) {}
 
   MyJet(float pt, float pt_corr, float eta, float phi, float area, float rho,
         float pt_lead, int n_constituents, float neutral_fraction,
@@ -52,6 +53,13 @@ MyJet(fastjet::PseudoJet jet, float rho)
   vector<fastjet::PseudoJet> constituents = sorted_by_pt(jet.constituents());
   n_constituents = constituents.size();
 
+  n_constituents_real = 0;
+  for (const auto &constituent : constituents) {
+    if (!constituent.is_pure_ghost()) { // charged constituent
+      n_constituents_real++;
+    }
+  }
+  
   if (n_constituents == 0 || pt <= 0) {
     // mark as invalid jet
     pt          = -999;
