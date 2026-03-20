@@ -34,7 +34,7 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
                        const unsigned int makerMode = 0,
                        TString treeName = "picoDst",
                        bool isEmbedding = true,
-                       bool storeOnlyTrigOrMc = false){
+                       bool storeOnlyTrigOrMc = false){ //
 
 #ifdef __CINT__
   gROOT->LoadMacro("loadSharedHFLibraries.C");
@@ -64,7 +64,7 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
                      2.203e-03, 3.437e-04, 4.681e-05, 8.532e-06,
                      2.178e-06, 1.198e-07, 6.939e-09};
 
-  StChain *chain = new StChain();
+  StChain *chain = new StChain(); //create a new STAR chain
   // ========================================================================================
   // makerMode    = StPicoJetMaker::kAnalyze;
   // ========================================================================================
@@ -73,7 +73,7 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   cout << "TreeName      " << treeName << endl;
   cout << "Input file: " << inputFile << endl;
   cout << "Loading bad run list: " << endl;
-  TString badRunListFileName = "BadRunList_14.list";
+  TString badRunListFileName = "BadRunList_14.list"; // File containing list of bad runs to exclude from analysis
   // check if exists
   if (!gSystem->AccessPathName(badRunListFileName)) {
     cout << "Bad run list file found!" << endl;
@@ -83,15 +83,15 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   }
 
   StMessMgr *msg = StMessMgr::Instance();
-  msg->SwitchOff("Could not make BEMC detector");
+  msg->SwitchOff("Could not make BEMC detector"); // Suppress specific warning about BEMC detector not being found in some events
 
-  StPicoDstMaker *picoDstMaker =
+  StPicoDstMaker *picoDstMaker = //Reads picoDst files and produces picoDst objects for each event
       new StPicoDstMaker(StPicoDstMaker::IoRead, inputFile,
                          "picoDstMaker"); // for local testing only
-  St_db_Maker *dbMaker = new St_db_Maker("StarDb", "MySQL:StarDb");
-  StEmcADCtoEMaker *adc = new StEmcADCtoEMaker();
+  St_db_Maker *dbMaker = new St_db_Maker("StarDb", "MySQL:StarDb"); //Loads calibration constants
+  StEmcADCtoEMaker *adc = new StEmcADCtoEMaker(); // Converts BEMC ADC values to energies
   StPicoHFJetMaker *stPicoHFJetMaker =
-      new StPicoHFJetMaker("jetTree", picoDstMaker, outputFile);
+      new StPicoHFJetMaker("jetTree", picoDstMaker, outputFile); // Main analysis maker that performs jet finding and EEC calculations, takes picoDstMaker as input to access event data and produces output file with results
 
   stPicoHFJetMaker->setMakerMode(makerMode);
   stPicoHFJetMaker->setTreeName(treeName);
@@ -112,26 +112,28 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   picoCuts->setCutRefMult(0, 100000);
 
   // 2014 MB HFT triggers
-  // picoCuts->addTriggerId(450050);    // vpdmb-5-p-nobsmd-hlt
-  // picoCuts->addTriggerId(450060);    // vpdmb-5-p-nobsmd-hlt
-  // picoCuts->addTriggerId(450005);    // vpdmb-5-p-nobsmd
-  // picoCuts->addTriggerId(450015);    // vpdmb-5-p-nobsmd
-  // picoCuts->addTriggerId(450025);    // vpdmb-5-p-nobsmd
+//  picoCuts->addTriggerId(450050);    // vpdmb-5-p-nobsmd-hlt
+//  picoCuts->addTriggerId(450060);    // vpdmb-5-p-nobsmd-hlt
+//  picoCuts->addTriggerId(450005);    // vpdmb-5-p-nobsmd
+//  picoCuts->addTriggerId(450015);    // vpdmb-5-p-nobsmd
+//  picoCuts->addTriggerId(450025);    // vpdmb-5-p-nobsmd
 
   // 2014 MB triggers
-  if (isEmbedding) {
+  //if (isEmbedding) {
     picoCuts->addTriggerId(450010); // vpdmb-30
     picoCuts->addTriggerId(450020); // vpdmb-30
-    picoCuts->addTriggerId(450008); // vpdmb-5
-    picoCuts->addTriggerId(450018); // vpdmb-5
-  }
+    //picoCuts->addTriggerId(450008); // vpdmb-5
+    //picoCuts->addTriggerId(450018); // vpdmb-5
+  //}
   
   // 2014 BHT2*VPD30 triggers
-  if (!isEmbedding) {
-    picoCuts->addTriggerId(450202);    // BHT2*VPD30
-    picoCuts->addTriggerId(450212);    // BHT2*VPD30
-  }
 
+  //if (!isEmbedding) {
+    //picoCuts->addTriggerId(450202);    // BHT2*VPD30
+    //picoCuts->addTriggerId(450212);    // BHT2*VPD30
+  //}
+
+ 
   // 2014 BHT3 triggers
   // picoCuts->addTriggerId(450203);    // BHT3
   // picoCuts->addTriggerId(450213);    // BHT3
@@ -159,11 +161,11 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   picoCuts->setCutTPCNSigma(30.0);
 
   picoCuts->setCutDcaMin(1.0);
-  picoCuts->setCutEta(1);
+  picoCuts->setCutEta(1); // default is 1
   picoCuts->setCutPtRange(0.2, 30.0); // default
-  picoCuts->setCutERange(0.2, 30.0);  //
+  picoCuts->setCutERange(0.2, 30.0);  // In analogy to track pT cut, for towers
 
-  vector<float> R;
+  vector<float> R; // jet resolution parameters to run, e.g. R = 0.2, 0.3, 0.4
   R.push_back(0.2);
   R.push_back(0.3);
   R.push_back(0.4);
@@ -171,7 +173,7 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   // TPC setters
 
   stPicoHFJetMaker->setGhostMaxrap(1.0);
-  stPicoHFJetMaker->setR(R);
+  stPicoHFJetMaker->setR(R); // Set the jet resolution parameters
   stPicoHFJetMaker->setJetPtMin(5); // default
   stPicoHFJetMaker->setCutETmin(0.2);
   stPicoHFJetMaker->setNJetsRemove(1);
@@ -250,7 +252,7 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
 
   // ========================================================================================
 
-  chain->Init();
+  chain->Init(); // Initialize the STAR chain, which will call Init() on all makers in the correct order
   if (!picoDstMaker->chain()) {
     cout << "ERROR: Chain is null. Exiting..." << endl;
     return;
@@ -269,7 +271,7 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   for (Int_t i = 0; i < nEvents; i++) {
     // Inside the event loop
     if (i % 100 == 0)
-      cout << "Processing event " << i << "/" << nEvents << endl;
+      cout << "Processing event " << i << "/" << nEvents << endl; //Shows actual progress through the events being processed, useful for long runs to monitor progress and estimate time remaining
 
     chain->Clear();
     int iret = chain->Make(i);

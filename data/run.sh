@@ -1,9 +1,9 @@
 #!/bin/bash
 
-setup 64b
-cons
+setup 64b #has to run in 64b
+cons #compiling
 
-run_mode="$1"  # "embedding", "data", or empty for both
+run_mode="$1"  # "embedding", "data", or empty for both (given by first argument)
 
 embedding_lists=(
     "filelists/embedding/pt3_5.list"
@@ -17,23 +17,24 @@ embedding_lists=(
     "filelists/embedding/pt30_40.list"
     "filelists/embedding/pt40_50.list"
     "filelists/embedding/pt50_-1.list"
-)
+) #list of embedding files to process
 
-real_data_list="filelists/pico_low_14.list"
+real_data_list="filelists/test_bad_data.list" #file list for real data processing
+# real_data_list="filelists/pico_low_14.list"
 
-if [[ "$run_mode" == "embedding" || -z "$run_mode" ]]; then
-  for list_file in "${embedding_lists[@]}"; do
-    ./submit/submit.sh "$list_file" embedding
-    if [[ $? -ne 0 ]]; then
+if [[ "$run_mode" == "embedding" || -z "$run_mode" ]]; then #if run_mode is "embedding" or empty, process embedding files
+  for list_file in "${embedding_lists[@]}"; do #loop through each embedding file
+    ./submit/submit.sh "$list_file" embedding #call submit.sh with the current embedding file and "embedding" as arguments
+    if [[ $? -ne 0 ]]; then #check if the previous command was successful, if not, print an error message and exit with status 1
         echo "Error processing $list_file"
         exit 1
     fi
   done
 fi
 
-if [[ "$run_mode" == "data" || -z "$run_mode" ]]; then
-  ./submit/submit.sh "$real_data_list" data
-  if [[ $? -ne 0 ]]; then
+if [[ "$run_mode" == "data" || -z "$run_mode" ]]; then #if run_mode is "data" or empty, process real data file
+  ./submit/submit.sh "$real_data_list" data #call submit.sh with the real data file and "data" as arguments
+  if [[ $? -ne 0 ]]; then #check if the previous command was successful, if not, print an error message and exit with status 1
       echo "Error processing $real_data_list"
       exit 1
   fi

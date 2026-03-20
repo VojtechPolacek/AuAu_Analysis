@@ -68,7 +68,7 @@ MyJet(fastjet::PseudoJet jet, float rho)
   trigger_match = false;
   for (const auto &constituent : constituents) {
     int uidx = constituent.user_index();
-    if (uidx == 9999) trigger_match = true;
+    //if (uidx == 9999) trigger_match = true;
     if (uidx == 0 || uidx == 9999)
       neutral_sum += constituent.perp();
   }
