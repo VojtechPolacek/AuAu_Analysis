@@ -720,6 +720,8 @@ for (unsigned int i = 0; i < fR.size(); i++) {
       myRecoJets.push_back(MyJet(RecoJets[j], rho));
       auto constituents = RecoJets[j].constituents();
       for (const auto& c : constituents) {
+        if (c.pt() < 0.1) continue; // Skip very low pT constituents
+        if (c.is_pure_ghost()) continue;
         c_runid = fRunNumber;
         c_eventid = fEventId;
         c_ijet = j;
@@ -734,7 +736,7 @@ for (unsigned int i = 0; i < fR.size(); i++) {
 
       
         constituentTree->Fill();
-        if (c_charge != 0 && c_pt > 0.1){
+        if (c_charge != 0){
           phi_vector.push_back(c_phi);
           eta_vector.push_back(c_eta);
           pt_vector.push_back(c_pt);
@@ -766,8 +768,8 @@ for (unsigned int i = 0; i < fR.size(); i++) {
           }
           //cout << "AFTER_____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
         }
-        eec_1 = E_vector[h] * E_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
-        //eec_1 = pt_vector[h] * pt_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
+        //eec_1 = E_vector[h] * E_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
+        eec_1 = pt_vector[h] * pt_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
         try_EECTree->Fill();
 
 
