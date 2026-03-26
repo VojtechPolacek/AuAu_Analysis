@@ -19,8 +19,8 @@ embedding_lists=(
     "filelists/embedding/pt50_-1.list"
 ) #list of embedding files to process
 
-real_data_list="filelists/test_bad_data.list" #file list for real data processing
-# real_data_list="filelists/pico_low_14.list"
+#real_data_list="filelists/test_bad_data.list" #file list for real data processing
+real_data_list="filelists/pico_low_14.list"
 
 if [[ "$run_mode" == "embedding" || -z "$run_mode" ]]; then #if run_mode is "embedding" or empty, process embedding files
   for list_file in "${embedding_lists[@]}"; do #loop through each embedding file

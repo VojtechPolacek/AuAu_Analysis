@@ -180,16 +180,18 @@ private:
   bool doTowErrMinus = false;
   bool doTrackErr = false;
 
+  static const std::vector<TString> fConfigNames; // {"full", "charged"}
+
     // fTreeRC[iR][iC] with iC = 0 (central), 1 (midcentral), 2 (peripheral)
-  std::vector<std::vector<TTree*>> fTreeRC;
-  std::vector<std::vector<TTree*>> fConstituentTreeRC; // member of StPicoHFJetMaker
-  std::vector<std::vector<TTree*>> fEECTreeRC; // member of StPicoHFJetMaker
-  std::vector<std::vector<TH1D*>> fHistEEC; // member of StPicoHFJetMaker
-  std::vector<std::vector<TH1D*>> fHistEEC_5_10; // member of StPicoHFJetMaker
-  std::vector<std::vector<TH1D*>> fHistEEC_10_15; // member of StPicoHFJetMaker
-  std::vector<std::vector<TH1D*>> fHistEEC_15_20; // member of StPicoHFJetMaker
-  std::vector<std::vector<TH1D*>> fHistEEC_20_30; // member of StPicoHFJetMaker
-  std::vector<std::vector<TH1D*>> fHistEEC_30_50; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TTree*>>> fTreeRC;
+  std::vector<std::vector<std::vector<TTree*>>> fConstituentTreeRC; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TTree*>>> fEECTreeRC; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TH1D*>>> fHistEEC; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_5_10; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_10_15; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_15_20; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_20_30; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_30_50; // member of StPicoHFJetMaker
 
   // store 3-class mapping per event (0=undef, 1=central, 2=midcentral, 3=peripheral)
   int fCentrality3;
