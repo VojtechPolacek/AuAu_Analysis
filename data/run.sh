@@ -1,7 +1,7 @@
 #!/bin/bash
 
-setup 64b #has to run in 64b
-cons #compiling
+#setup 64b #has to run in 64b
+#cons #compiling
 
 run_mode="$1"  # "embedding", "data", or empty for both (given by first argument)
 

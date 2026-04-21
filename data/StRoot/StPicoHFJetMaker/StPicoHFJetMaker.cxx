@@ -45,7 +45,7 @@ int c_charge;
 int c_runid, c_eventid, c_ijet;
 int eec_ijet, eec_eventid, eec_runid;
 float eec_1, RL;
-float EEC_low, EEC_mid, EEC_high;
+//float EEC_low, EEC_mid, EEC_high;
  
 
 //Limits for R=0,2
@@ -138,11 +138,17 @@ int StPicoHFJetMaker::InitJets() {
   mOutList->Add(new TH1D("hTrackPt", "Primary tracks;p_{T} (GeV/c);counts", 400, 0.0, 40.0));
   mOutList->Add(new TH2D("hTrackEtaPhi", "Primary tracks;#eta;#phi",
                        40, -1.0, 1.0, 120, 0.0, 2.0*TMath::Pi()));
-  mOutList->Add(new TH2D("hRhoVsRefMult",
-                       "#rho vs refMult;refMult;#rho (GeV/c per unit area)",
+  mOutList->Add(new TH2D("hRhoVsRefMultfull",
+                       "#rho vs refMult;refMult;#rho_full (GeV/c per unit area)",
                        800, 0, 800,     // adjust refMult range/binning to your dataset
                        200, 0.0, 200.0  // adjust rho range/binning as needed
-                       ));                     
+                       ));
+                       
+  mOutList->Add(new TH2D("hRhoVsRefMultcharged",
+                       "#rho vs refMult;refMult;#rho_charged (GeV/c per unit area)",
+                       800, 0, 800,     // adjust refMult range/binning to your dataset
+                       200, 0.0, 200.0  // adjust rho range/binning as needed
+                       ));
 
 
   TDirectory* fileDir = gDirectory;
@@ -238,6 +244,7 @@ int StPicoHFJetMaker::InitJets() {
 
         // ---- TTree per (R,class); NO centrality branch
         TTree* jetTree = new TTree("JetTree", "JetTree");
+        //jetTree->SetDirectory(0); // detach from file - won't be auto-saved
         jetTree->Branch("runId", &fRunNumber, "runId/I");
         jetTree->Branch("eventId", &fEventId,   "eventId/I");
         jetTree->Branch("centralityWeight", &fCentralityWeight, "centralityWeight/F"); 
@@ -270,6 +277,7 @@ int StPicoHFJetMaker::InitJets() {
       
 
         TTree* constituentTree = new TTree("ConstituentTree", "Jet Constituents");
+        constituentTree->SetDirectory(0); // detach from file - won't be auto-saved
         constituentTree->Branch("runid", &c_runid, "runid/I");
         constituentTree->Branch("eventid", &c_eventid, "eventid/I");
         constituentTree->Branch("ijet", &c_ijet, "ijet/I");
@@ -286,6 +294,7 @@ int StPicoHFJetMaker::InitJets() {
 
         //Tree for EEC
         TTree* EECTree = new TTree("EECTree", "EEC");
+        EECTree->SetDirectory(0); // detach from file - won't be auto-saved
         EECTree->Branch("ijet", &eec_ijet, "ijet/I");
         EECTree->Branch("runid", &eec_runid, "runid/I");
         EECTree->Branch("eventid", &eec_eventid, "eventid/I");
@@ -372,7 +381,7 @@ for (size_t iR = 0; iR < nR; ++iR) {
         fTreeRC[iR][iConfig][ciTree]) {
       fTreeRC[iR][iConfig][ciTree]->Write();
     }
-
+/*
     if (iR < fConstituentTreeRC.size() && ciTree >= 0 &&
       ciTree < (int)fConstituentTreeRC[iR][iConfig].size() &&
       fConstituentTreeRC[iR][iConfig][ciTree]) {
@@ -384,7 +393,7 @@ for (size_t iR = 0; iR < nR; ++iR) {
       fEECTreeRC[iR][iConfig][ciTree]) {
       fEECTreeRC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
     }
-
+*/
     // --- Normalize histograms for each R and centrality
     if(iR < fHistEEC_5_10.size() && ciTree >= 0 && ciTree < (int)fHistEEC_5_10[iR][iConfig].size()) {
       TH1D* h = fHistEEC_5_10[iR][iConfig][ciTree];
@@ -683,7 +692,8 @@ fastjet::AreaDefinition area_def(
 float rho_full = 0.0;
 float rho_charged = 0.0;
 
-TH2D* hRhoVsRefMult = (TH2D*)mOutList->FindObject("hRhoVsRefMult");
+TH2D* hRhoVsRefMultfull = (TH2D*)mOutList->FindObject("hRhoVsRefMultfull");
+TH2D* hRhoVsRefMultcharged = (TH2D*)mOutList->FindObject("hRhoVsRefMultcharged");
 
 fastjet::JetDefinition jet_def_for_rho(fastjet::kt_algorithm, fRBg);
 nJetsRemove = (c3 == 1 ? 2 : 1);
@@ -719,12 +729,12 @@ std::vector<JetConfig> jetConfigs = {
   {fConfigNames[1], &jetTracks, rho_charged}
 };
 
-if (hRhoVsRefMult && !vetoReco && !fullTracks.empty()) { //comment for charged jets, as we want to use only tracks for rho estimation
-  hRhoVsRefMult->Fill(refMult, rho_full, fCentralityWeight);
+if (hRhoVsRefMultfull && !vetoReco && !fullTracks.empty()) { //comment for charged jets, as we want to use only tracks for rho estimation
+  hRhoVsRefMultfull->Fill(refMult, rho_full, fCentralityWeight);
 }
 
-if (hRhoVsRefMult && !vetoReco && !jetTracks.empty()) {  //comment for full jets, use jetTracks for rho estimation to be consistent with charged jet case
-  hRhoVsRefMult->Fill(refMult, rho_charged, fCentralityWeight);
+if (hRhoVsRefMultcharged && !vetoReco && !jetTracks.empty()) {  //comment for full jets, use jetTracks for rho estimation to be consistent with charged jet case
+  hRhoVsRefMultcharged->Fill(refMult, rho_charged, fCentralityWeight);
 }
 
 //======================================================================//
@@ -738,9 +748,9 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
     fastjet::JetDefinition jet_def(fastjet::antikt_algorithm, fR[i]);
     float maxRapJet = 1 - fR[i];
 
-    EEC_low = 0.0;
-    EEC_mid = 0.0;
-    EEC_high = 0.0;
+    //EEC_low = 0.0;
+    //EEC_mid = 0.0;
+    //EEC_high = 0.0;
 
     //==============================Reco jets===============================//
     TTree* jetTree = 0;
@@ -790,90 +800,109 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
       fastjet::Selector fiducial_cut_selector = fastjet::SelectorAbsEtaMax(maxRapJet);
       std::vector<fastjet::PseudoJet> RecoJets = fiducial_cut_selector(fjets_all);
       myRecoJets.reserve(RecoJets.size());
-      for (size_t j = 0; j < RecoJets.size(); ++j) {
-        myRecoJets.push_back(MyJet(RecoJets[j], rho));
-        auto constituents = RecoJets[j].constituents();
-        for (const auto& c : constituents) {
-          if (c.pt() < 0.1) continue; // Skip very low pT constituents
-          if (c.is_pure_ghost()) continue; //Keeps only real constituents, skip ghosts
-          c_runid = fRunNumber;
-          c_eventid = fEventId;
-          c_ijet = j;
-          c_px = c.px();
-          c_py = c.py();
-          c_pz = c.pz();
-          c_pt = c.perp();
-          c_E = c.E();
-          c_eta = c.eta();
-          c_phi = c.phi();
-          c_charge = c.user_index(); // Use user_index to store charge information
+      if (!mIsEmbedding){
+        for (size_t j = 0; j < RecoJets.size(); ++j) {
+          myRecoJets.push_back(MyJet(RecoJets[j], rho));
+          auto constituents = RecoJets[j].constituents();
+          for (const auto& c : constituents) {
+            if (c.pt() < 0.1) continue; // Skip very low pT constituents
+            if (c.is_pure_ghost()) continue; //Keeps only real constituents, skip ghosts
+            c_runid = fRunNumber;
+            c_eventid = fEventId;
+            c_ijet = j;
+            c_px = c.px();
+            c_py = c.py();
+            c_pz = c.pz();
+            c_pt = c.perp();
+            c_E = c.E();
+            c_eta = c.eta();
+            c_phi = c.phi();
+            c_charge = c.user_index(); // Use user_index to store charge information
 
       
-          constituentTree->Fill();
-          if (c_charge != 0){
-            phi_vector.push_back(c_phi);
-            eta_vector.push_back(c_eta);
-            pt_vector.push_back(c_pt);
-            E_vector.push_back(c_E);
-          }; // Skip neutral constituents
-        }
+            constituentTree->Fill();
+
+            /*
+            if (tracks == jetTracks){
+              phi_vector.push_back(c_phi);
+              eta_vector.push_back(c_eta);
+              pt_vector.push_back(c_pt);
+              E_vector.push_back(c_E);
+            }
+            if (tracks == fullTracks && c_charge != 0){
+              phi_vector.push_back(c_phi);
+              eta_vector.push_back(c_eta);
+              pt_vector.push_back(c_pt);
+              E_vector.push_back(c_E);
+            }; // Skip neutral constituents
+            */
+            if (c_charge != 0){
+              phi_vector.push_back(c_phi);
+              eta_vector.push_back(c_eta);
+              pt_vector.push_back(c_pt);
+              E_vector.push_back(c_E);
+            }; // Skip neutral constituents
+          
+          }
       
-        //Calculate EEC and RL
-        for (Long64_t h = 0; h < phi_vector.size(); ++h) {
-          for (Long64_t k = h+1; k < phi_vector.size(); ++k) {
-            if (h == k) continue; // Don't compare with itself
+          //Calculate EEC and RL
+          for (Long64_t h = 0; h < phi_vector.size(); ++h) {
+            for (Long64_t k = h+1; k < phi_vector.size(); ++k) {
+              if (h == k) continue; // Don't compare with itself
               // Calculate RL
-            eec_ijet = j;
-            eec_eventid = fEventId;
-            eec_runid = fRunNumber;
-            double delta_phi = phi_vector[h] - phi_vector[k];
-            double delta_eta = eta_vector[h] - eta_vector[k];
+              eec_ijet = j;
+              eec_eventid = fEventId;
+              eec_runid = fRunNumber;
+              double delta_phi = phi_vector[h] - phi_vector[k];
+              double delta_eta = eta_vector[h] - eta_vector[k];
 
-            RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
-            if (RL > 0.8) {
-              //cout << "BEFORE____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
-              if (delta_phi <= -TMath::Pi()) {
-                delta_phi = delta_phi + TMath::TwoPi();
-                RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
+              RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
+              if (RL > 0.8) {
+                //cout << "BEFORE____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
+                if (delta_phi <= -TMath::Pi()) {
+                  delta_phi = delta_phi + TMath::TwoPi();
+                  RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
+                }
+                if (delta_phi >= TMath::Pi()) { 
+                  delta_phi = delta_phi - TMath::TwoPi();
+                  RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
+                }
+                //cout << "AFTER_____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
               }
-              if (delta_phi >= TMath::Pi()) { 
-                delta_phi = delta_phi - TMath::TwoPi();
-                RL = sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
-              }
-              //cout << "AFTER_____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
-            }
-            //eec_1 = E_vector[h] * E_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
-            eec_1 = pt_vector[h] * pt_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
-            try_EECTree->Fill();
+              //eec_1 = E_vector[h] * E_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
+              eec_1 = pt_vector[h] * pt_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
+              try_EECTree->Fill();
 
 
-            //hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
+              //hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
         
-            if (myRecoJets[j].pt_corr >= 5 && myRecoJets[j].pt_corr < 10){
-              hEEC_5_10->Fill(RL, eec_1); // Fill histogram for 5-10 GeV/c jets
-            }
-            if (myRecoJets[j].pt_corr >= 10 && myRecoJets[j].pt_corr < 15){
-              hEEC_10_15->Fill(RL, eec_1); // Fill histogram for 10-15 GeV/c jets
-            }
-            if (myRecoJets[j].pt_corr>= 15 && myRecoJets[j].pt_corr < 20){
-              hEEC_15_20->Fill(RL, eec_1); // Fill histogram for 15-20 GeV/c jets
-              EEC_low = EEC_low + eec_1;
-            }
-            if (myRecoJets[j].pt_corr>= 20 && myRecoJets[j].pt_corr < 30){
-              hEEC_20_30->Fill(RL, eec_1); // Fill histogram for 20-30 GeV/c jets
-              EEC_mid = EEC_mid + eec_1;
-            }
-            if (myRecoJets[j].pt_corr >= 30 && myRecoJets[j].pt_corr < 50){
-              hEEC_30_50->Fill(RL, eec_1); // Fill histogram for 30-50 GeV/c jets
-              EEC_high = EEC_high + eec_1;
+              if (myRecoJets[j].pt_corr >= 5 && myRecoJets[j].pt_corr < 10){
+                hEEC_5_10->Fill(RL, eec_1); // Fill histogram for 5-10 GeV/c jets
+              }
+              if (myRecoJets[j].pt_corr >= 10 && myRecoJets[j].pt_corr < 15){
+                hEEC_10_15->Fill(RL, eec_1); // Fill histogram for 10-15 GeV/c jets
+              }
+              if (myRecoJets[j].pt_corr>= 15 && myRecoJets[j].pt_corr < 20){
+                hEEC_15_20->Fill(RL, eec_1); // Fill histogram for 15-20 GeV/c jets
+                //EEC_low = EEC_low + eec_1;
+              }
+              if (myRecoJets[j].pt_corr>= 20 && myRecoJets[j].pt_corr < 30){
+                hEEC_20_30->Fill(RL, eec_1); // Fill histogram for 20-30 GeV/c jets
+                //EEC_mid = EEC_mid + eec_1;
+              }
+              if (myRecoJets[j].pt_corr >= 30 && myRecoJets[j].pt_corr < 50){
+                hEEC_30_50->Fill(RL, eec_1); // Fill histogram for 30-50 GeV/c jets
+                //EEC_high = EEC_high + eec_1;
+              }
+            
             }
           }
-        }
 
-        phi_vector.clear();
-        eta_vector.clear();
-        E_vector.clear();
-        pt_vector.clear();
+          phi_vector.clear();
+          eta_vector.clear();
+          E_vector.clear();
+          pt_vector.clear();
+        }
       }
     } 
 
