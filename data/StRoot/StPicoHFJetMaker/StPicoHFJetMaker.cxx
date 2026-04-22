@@ -28,29 +28,31 @@
 
 using namespace std;
 
-const char* kCentTag[4] = {
+const char* kCentTag[4] = { // centrality classes
   "",            // index 0 unused
   "CENT_0_10",   // c3 = 1
   "MID_20_40",   // c3 = 2
   "PERI_60_80"   // c3 = 3
 };
 
-const std::vector<TString> StPicoHFJetMaker::fConfigNames = {"full", "charged"};
-std::vector<float> phi_vector;
-std::vector<float> eta_vector;
-std::vector<float> E_vector;
-std::vector<float> pt_vector;
-float c_px, c_py, c_pz, c_pt, c_E, c_phi, c_eta;
-int c_charge;
-int c_runid, c_eventid, c_ijet;
-int eec_ijet, eec_eventid, eec_runid;
-float eec_1, RL;
-//float EEC_low, EEC_mid, EEC_high;
- 
+const std::vector<TString> StPicoHFJetMaker::fConfigNames = {"full", "charged"}; // configurations for jet finding and background estimation
 
+if(!mIsEmbedding) { // use these variables only for data (not embedding)
+  std::vector<float> phi_vector;
+  std::vector<float> eta_vector;
+  std::vector<float> E_vector;
+  std::vector<float> pt_vector;
+  float c_px, c_py, c_pz, c_pt, c_E, c_phi, c_eta;
+  int c_charge;
+  int c_runid, c_eventid, c_ijet;
+  int eec_ijet, eec_eventid, eec_runid;
+  float eec_1, RL;
+  //float EEC_low, EEC_mid, EEC_high;
+}
+ 
+//---------------------Binning for EEC------------------------
 //Limits for R=0,2
 int N_bins_02 = 33;
-
 double EEC_bounds_02[34] = {
   0.0, 0.00500, 0.00571, 0.00653, 0.00746, 0.00853, 0.00975, 0.01114, 0.01273, 0.01455,
   0.01663, 0.01901, 0.02172, 0.02482, 0.02837, 0.03242, 0.03706, 0.04235, 0.04840,
@@ -61,8 +63,6 @@ double EEC_bounds_02[34] = {
 int N_bins_03 = 37;
 double EEC_bounds_03[38] = {0.0, 0.005, 0.00571, 0.00653, 0.00746, 0.00853, 0.00975, 0.01114, 0.01273, 0.01455, 0.01663, 0.01901, 0.02172, 0.02482, 0.02837, 0.03242, 0.03706, 0.04235, 0.04840, 0.05531, 0.06321, 0.07225, 0.08257, 0.09436, 0.10784, 0.12325, 0.14085, 0.16098, 0.18397, 0.21025, 0.24029, 0.27462, 0.31385, 0.35868, 0.40992, 0.46849, 0.53541,0.6};
   
-
-
 //Limits for R=0,4
 int N_bins_04 = 37;
 double EEC_bounds_04[38] = {
@@ -83,7 +83,7 @@ const double CUT_NEUTRAL_FRACTION = 0.95;
 
 vector<MatchedJetPair> MatchJetsEtaPhi(const vector<MyJet> &McJets,
                                        const vector<MyJet> &RecoJets,
-                                       const double &R);
+                                       const double &R); // match reco jets to MC jets based on eta-phi distance; return pairs of matched jets (deltaR < R)
 
 ClassImp(StPicoHFJetMaker)
 
@@ -110,10 +110,12 @@ int StPicoHFJetMaker::InitJets() {
 
   TH1::SetDefaultSumw2();
 
-  mOutList->SetName("QA_histograms"); 
+
+  //---------------------QA histograms------------------------
+  mOutList->SetName("QA_histograms"); // list to hold QA histograms; will be written to file
 
   TH1D* hcent9 = new TH1D("hcent9", "centrality9;bin;events", 10, -1, 9);
-  mOutList->Add(hcent9);
+  mOutList->Add(hcent9); // centrality distribution with 9 bins (0-5%, 5-10%, ..., 70-80%) - adjust as needed for your dataset
 
   TAxis* ax = hcent9->GetXaxis();
   const char* lab9[10] = {
@@ -127,7 +129,8 @@ int StPicoHFJetMaker::InitJets() {
     "6: 50-60%",
     "7: 60-70%",
     "8: 70-80%"
-  };
+  }; // centrality bin labels - adjust as needed for your dataset
+
   int b;
   for (b = 1; b <= 10; ++b) ax->SetBinLabel(b, lab9[b-1]);
   ax->CenterLabels(true);
@@ -149,38 +152,42 @@ int StPicoHFJetMaker::InitJets() {
                        800, 0, 800,     // adjust refMult range/binning to your dataset
                        200, 0.0, 200.0  // adjust rho range/binning as needed
                        ));
+  
 
-
+  //---------------------------Vectors of TTrees and histograms for different R and centrality classes---------------------------
+  
   TDirectory* fileDir = gDirectory;
   fTreeRC.clear();
   fTreeRC.reserve(fR.size());
-  fConstituentTreeRC.clear();
-  fConstituentTreeRC.reserve(fR.size());
-  fEECTreeRC.clear();
-  fEECTreeRC.reserve(fR.size());
-  //fHistEEC.clear();
-  //fHistEEC.reserve(fR.size());
-  fHistEEC_5_10.clear();
-  fHistEEC_5_10.reserve(fR.size());
-  fHistEEC_10_15.clear();
-  fHistEEC_10_15.reserve(fR.size());
-  fHistEEC_15_20.clear();
-  fHistEEC_15_20.reserve(fR.size());
-  fHistEEC_20_30.clear();
-  fHistEEC_20_30.reserve(fR.size());
-  fHistEEC_30_50.clear();
-  fHistEEC_30_50.reserve(fR.size());
+  if(!mIsEmbedding) {//only create EEC trees and histograms for data, not embedding
+    fConstituentTreeRC.clear();
+    fConstituentTreeRC.reserve(fR.size());
+    fEECTreeRC.clear();
+    fEECTreeRC.reserve(fR.size());
+    //fHistEEC.clear();
+    //fHistEEC.reserve(fR.size());
+    fHistEEC_5_10.clear();
+    fHistEEC_5_10.reserve(fR.size());
+    fHistEEC_10_15.clear();
+    fHistEEC_10_15.reserve(fR.size());
+    fHistEEC_15_20.clear();
+    fHistEEC_15_20.reserve(fR.size());
+    fHistEEC_20_30.clear();
+    fHistEEC_20_30.reserve(fR.size());
+    fHistEEC_30_50.clear();
+    fHistEEC_30_50.reserve(fR.size());
+  }
 
-  for (size_t iR = 0; iR < fR.size(); ++iR) {
-    const TString rName = Form("R%.1f", fR[iR]);
-    TDirectory* rdir = fileDir->mkdir(rName);
-    if (!rdir) rdir = (TDirectory*)fileDir->Get(rName);
-    rdir->cd();
+  for (size_t iR = 0; iR < fR.size(); ++iR) { // loop over R values
+    const TString rName = Form("R%.1f", fR[iR]); // directory name for this R
+    TDirectory* rdir = fileDir->mkdir(rName); // create directory for this R
+    if (!rdir) rdir = (TDirectory*)fileDir->Get(rName); // if it already exists (e.g. from a previous run), get it
+    rdir->cd(); // change to this directory for creating subdirectories and objects
 
-    int nBinsEEC = 0;
-    double* EEC_bounds = nullptr;
+    int nBinsEEC = 0; // number of bins for EEC histograms for this R
+    double* EEC_bounds = nullptr; // pointer to bin edges for EEC histograms for this R
 
-    if(std::abs(fR[iR] - 0.2) < 1e-3) {
+    if(std::abs(fR[iR] - 0.2) < 1e-3) { //Choose EEC binning based on R value; adjust the tolerance as needed for floating-point comparisons
       nBinsEEC = N_bins_02;
       EEC_bounds = EEC_bounds_02;
     } else if(std::abs(fR[iR] - 0.3) < 1e-3) {
@@ -190,59 +197,63 @@ int StPicoHFJetMaker::InitJets() {
       nBinsEEC = N_bins_04;
       EEC_bounds = EEC_bounds_04;
     }
-
+   
+    
+    // create vectors to hold TTrees and histograms for this R; we'll fill these and then add them to the main vectors after the loop over centrality classes
     std::vector<std::vector<TTree*>> treesConfig;
     treesConfig.reserve(2);
-    std::vector<std::vector<TTree*>> ConstituentTreeConfig;
-    ConstituentTreeConfig.reserve(2);
-    std::vector<std::vector<TTree*>> EECTreeConfig;
-    EECTreeConfig.reserve(2);
-    std::vector<std::vector<TH1D*>> HistEEC_5_10_Config;
-    HistEEC_5_10_Config.reserve(2);
-    std::vector<std::vector<TH1D*>> HistEEC_10_15_Config;
-    HistEEC_10_15_Config.reserve(2);    
-    std::vector<std::vector<TH1D*>> HistEEC_15_20_Config;
-    HistEEC_15_20_Config.reserve(2);
-    std::vector<std::vector<TH1D*>> HistEEC_20_30_Config;
-    HistEEC_20_30_Config.reserve(2);
-    std::vector<std::vector<TH1D*>> HistEEC_30_50_Config;
-    HistEEC_30_50_Config.reserve(2);
+    if (!mIsEmbedding) { //only create EEC trees and histograms for data, not embedding
+      std::vector<std::vector<TTree*>> ConstituentTreeConfig;
+      ConstituentTreeConfig.reserve(2);
+      std::vector<std::vector<TTree*>> EECTreeConfig;
+      EECTreeConfig.reserve(2);
+      std::vector<std::vector<TH1D*>> HistEEC_5_10_Config;
+      HistEEC_5_10_Config.reserve(2);
+      std::vector<std::vector<TH1D*>> HistEEC_10_15_Config;
+      HistEEC_10_15_Config.reserve(2);    
+      std::vector<std::vector<TH1D*>> HistEEC_15_20_Config;
+      HistEEC_15_20_Config.reserve(2);
+      std::vector<std::vector<TH1D*>> HistEEC_20_30_Config;
+      HistEEC_20_30_Config.reserve(2);
+      std::vector<std::vector<TH1D*>> HistEEC_30_50_Config;
+      HistEEC_30_50_Config.reserve(2);
+    }
 
-    for (size_t iConfig = 0; iConfig < fConfigNames.size(); ++iConfig){
-      TDirectory* configDir = rdir->mkdir(fConfigNames[iConfig]);
-      if (!configDir) configDir = (TDirectory*)rdir->Get(fConfigNames[iConfig]);
+    for (size_t iConfig = 0; iConfig < fConfigNames.size(); ++iConfig){ // loop over configurations (full, charged)
+      TDirectory* configDir = rdir->mkdir(fConfigNames[iConfig]); // create directory for this configuration
+      if (!configDir) configDir = (TDirectory*)rdir->Get(fConfigNames[iConfig]); // if it already exists, get it
       configDir->cd();
 
-
+      //Create vectors to hold TTrees and histograms for this configuration; we'll fill these and then add them to the main vectors after the loop over centrality classes
       std::vector<TTree*> treesC;  // 3 classes: 1..3 (we'll index 0..2)
       treesC.reserve(3);
-      std::vector<TTree*> ConstituentTreeC; // member of StPicoHFJetMaker
-      ConstituentTreeC.reserve(3);
-      std::vector<TTree*> EECTreeC; // member of StPicoHFJetMaker
-      EECTreeC.reserve(3);
-      //std::vector<TH1D*> Hist_EEC_C; // member of StPicoHFJetMaker
-      //Hist_EEC_C.reserve(3);
-      std::vector<TH1D*> Hist_EEC_C_5_10; // member of StPicoHFJetMaker
-      Hist_EEC_C_5_10.reserve(3);
-      std::vector<TH1D*> Hist_EEC_C_10_15; // member of StPicoHFJetMaker
-      Hist_EEC_C_10_15.reserve(3);
-      std::vector<TH1D*> Hist_EEC_C_15_20; // member of StPicoHFJetMaker
-      Hist_EEC_C_15_20.reserve(3);
-      std::vector<TH1D*> Hist_EEC_C_20_30; // member of StPicoHFJetMaker
-      Hist_EEC_C_20_30.reserve(3);
-      std::vector<TH1D*> Hist_EEC_C_30_50; // member of StPicoHFJetMaker
-      Hist_EEC_C_30_50.reserve(3);
-      // book three classes (central, midcentral, peripheral)
+      if (!mIsEmbedding) { //only create EEC trees and histograms for data, not embedding
+        std::vector<TTree*> ConstituentTreeC; // member of StPicoHFJetMaker
+        ConstituentTreeC.reserve(3);
+        std::vector<TTree*> EECTreeC; // member of StPicoHFJetMaker
+        EECTreeC.reserve(3);
+        //std::vector<TH1D*> Hist_EEC_C; // member of StPicoHFJetMaker
+        //Hist_EEC_C.reserve(3);
+        std::vector<TH1D*> Hist_EEC_C_5_10; // member of StPicoHFJetMaker
+        Hist_EEC_C_5_10.reserve(3);
+        std::vector<TH1D*> Hist_EEC_C_10_15; // member of StPicoHFJetMaker
+        Hist_EEC_C_10_15.reserve(3);
+        std::vector<TH1D*> Hist_EEC_C_15_20; // member of StPicoHFJetMaker
+        Hist_EEC_C_15_20.reserve(3);
+        std::vector<TH1D*> Hist_EEC_C_20_30; // member of StPicoHFJetMaker
+        Hist_EEC_C_20_30.reserve(3);
+        std::vector<TH1D*> Hist_EEC_C_30_50; // member of StPicoHFJetMaker
+        Hist_EEC_C_30_50.reserve(3);
+      }
 
 
-      for (int c3 = 1; c3 <= 3; ++c3) {
-        TDirectory* cdir = configDir->mkdir(kCentTag[c3]);
-        if (!cdir) cdir = (TDirectory*)configDir->Get(kCentTag[c3]);
+      for (int c3 = 1; c3 <= 3; ++c3) { // loop over centrality classes (1..3); adjust as needed for your dataset
+        TDirectory* cdir = configDir->mkdir(kCentTag[c3]); // create directory for this centrality class
+        if (!cdir) cdir = (TDirectory*)configDir->Get(kCentTag[c3]); // if it already exists, get it
         cdir->cd();
       
-        //ATH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds);
+        //ATH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds); // create EEC histogram for this centrality class; adjust name/title as needed
 
-        // ---- TTree per (R,class); NO centrality branch
         TTree* jetTree = new TTree("JetTree", "JetTree");
         //jetTree->SetDirectory(0); // detach from file - won't be auto-saved
         jetTree->Branch("runId", &fRunNumber, "runId/I");
@@ -274,75 +285,79 @@ int StPicoHFJetMaker::InitJets() {
         jetTree->Branch("reco_trigger_match", &fRecoJet.trigger_match, "reco_trigger_match/O");
 
         treesC.push_back(jetTree);
-      
+        if(!mIsEmbedding) {    
+          TTree* constituentTree = new TTree("ConstituentTree", "Jet Constituents");
+          //constituentTree->SetDirectory(0); // detach from file - won't be auto-saved
+          constituentTree->Branch("runid", &c_runid, "runid/I");
+          constituentTree->Branch("eventid", &c_eventid, "eventid/I");
+          constituentTree->Branch("ijet", &c_ijet, "ijet/I");
+          constituentTree->Branch("px", &c_px, "px/F");
+          constituentTree->Branch("py", &c_py, "py/F");
+          constituentTree->Branch("pz", &c_pz, "pz/F");
+          constituentTree->Branch("pt", &c_pt, "pt/F");
+          constituentTree->Branch("E", &c_E, "E/F");
+          constituentTree->Branch("eta", &c_eta, "eta/F");
+          constituentTree->Branch("phi", &c_phi, "phi/F");
+          constituentTree->Branch("charge", &c_charge, "charge/I");
+          
+          ConstituentTreeC.push_back(constituentTree);
 
-        TTree* constituentTree = new TTree("ConstituentTree", "Jet Constituents");
-        constituentTree->SetDirectory(0); // detach from file - won't be auto-saved
-        constituentTree->Branch("runid", &c_runid, "runid/I");
-        constituentTree->Branch("eventid", &c_eventid, "eventid/I");
-        constituentTree->Branch("ijet", &c_ijet, "ijet/I");
-        constituentTree->Branch("px", &c_px, "px/F");
-        constituentTree->Branch("py", &c_py, "py/F");
-        constituentTree->Branch("pz", &c_pz, "pz/F");
-        constituentTree->Branch("pt", &c_pt, "pt/F");
-        constituentTree->Branch("E", &c_E, "E/F");
-        constituentTree->Branch("eta", &c_eta, "eta/F");
-        constituentTree->Branch("phi", &c_phi, "phi/F");
-        constituentTree->Branch("charge", &c_charge, "charge/I");
 
-        ConstituentTreeC.push_back(constituentTree);
+          //Tree for EEC
+          TTree* EECTree = new TTree("EECTree", "EEC");
+          EECTree->SetDirectory(0); // detach from file - won't be auto-saved
+          EECTree->Branch("ijet", &eec_ijet, "ijet/I");
+          EECTree->Branch("runid", &eec_runid, "runid/I");
+          EECTree->Branch("eventid", &eec_eventid, "eventid/I");
+          EECTree->Branch("eec", &eec_1, "eec/F");
+          EECTree->Branch("RL", &RL, "RL/F");
 
-        //Tree for EEC
-        TTree* EECTree = new TTree("EECTree", "EEC");
-        EECTree->SetDirectory(0); // detach from file - won't be auto-saved
-        EECTree->Branch("ijet", &eec_ijet, "ijet/I");
-        EECTree->Branch("runid", &eec_runid, "runid/I");
-        EECTree->Branch("eventid", &eec_eventid, "eventid/I");
-        EECTree->Branch("eec", &eec_1, "eec/F");
-        EECTree->Branch("RL", &RL, "RL/F");
+          EECTreeC.push_back(EECTree);
 
-        EECTreeC.push_back(EECTree);
-
-        //Histograms for EEC
-        //TH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds);
-        //Hist_EEC_C.push_back(hEEC);
-        TH1D* hEEC_5_10 = new TH1D("hEEC_5_10", "EEC vs RL for 5<=pT<10;RL;EEC", nBinsEEC, EEC_bounds);
-        Hist_EEC_C_5_10.push_back(hEEC_5_10);
-        TH1D* hEEC_10_15 = new TH1D("hEEC_10_15", "EEC vs RL for 10<=pT<15;RL;EEC", nBinsEEC, EEC_bounds);
-        Hist_EEC_C_10_15.push_back(hEEC_10_15);
-        TH1D* hEEC_15_20 = new TH1D("hEEC_15_20", "EEC vs RL for 15<=pT<20;RL;EEC", nBinsEEC, EEC_bounds);
-        Hist_EEC_C_15_20.push_back(hEEC_15_20);
-        TH1D* hEEC_20_30 = new TH1D("hEEC_20_30", "EEC vs RL for 20<=pT<30;RL;EEC", nBinsEEC, EEC_bounds);
-        Hist_EEC_C_20_30.push_back(hEEC_20_30);
-        TH1D* hEEC_30_50 = new TH1D("hEEC_30_50", "EEC vs RL for 30<=pT<50;RL;EEC", nBinsEEC, EEC_bounds);
-        Hist_EEC_C_30_50.push_back(hEEC_30_50);
+          //Histograms for EEC
+          //TH1D* hEEC = new TH1D("hEEC", "EEC vs RL;RL;EEC", N_bins, EEC_bounds);
+          //Hist_EEC_C.push_back(hEEC);
+          TH1D* hEEC_5_10 = new TH1D("hEEC_5_10", "EEC vs RL for 5<=pT<10;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_C_5_10.push_back(hEEC_5_10);
+          TH1D* hEEC_10_15 = new TH1D("hEEC_10_15", "EEC vs RL for 10<=pT<15;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_C_10_15.push_back(hEEC_10_15);
+          TH1D* hEEC_15_20 = new TH1D("hEEC_15_20", "EEC vs RL for 15<=pT<20;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_C_15_20.push_back(hEEC_15_20);
+          TH1D* hEEC_20_30 = new TH1D("hEEC_20_30", "EEC vs RL for 20<=pT<30;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_C_20_30.push_back(hEEC_20_30);
+          TH1D* hEEC_30_50 = new TH1D("hEEC_30_50", "EEC vs RL for 30<=pT<50;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_C_30_50.push_back(hEEC_30_50);
+        }
 
         configDir->cd();
       }
     
       treesConfig.push_back(treesC);
-      ConstituentTreeConfig.push_back(ConstituentTreeC);
-      EECTreeConfig.push_back(EECTreeC);
-      HistEEC_5_10_Config.push_back(Hist_EEC_C_5_10);
-      HistEEC_10_15_Config.push_back(Hist_EEC_C_10_15);
-      HistEEC_15_20_Config.push_back(Hist_EEC_C_15_20);
-      HistEEC_20_30_Config.push_back(Hist_EEC_C_20_30);
-      HistEEC_30_50_Config.push_back(Hist_EEC_C_30_50);
-
+      if (!mIsEmbedding) { //only create EEC trees and histograms for data, not embedding
+        ConstituentTreeConfig.push_back(ConstituentTreeC);
+        EECTreeConfig.push_back(EECTreeC);
+        HistEEC_5_10_Config.push_back(Hist_EEC_C_5_10);
+        HistEEC_10_15_Config.push_back(Hist_EEC_C_10_15);
+        HistEEC_15_20_Config.push_back(Hist_EEC_C_15_20);
+        HistEEC_20_30_Config.push_back(Hist_EEC_C_20_30);
+        HistEEC_30_50_Config.push_back(Hist_EEC_C_30_50);
+      }
       rdir->cd();
 
     }
 
 
     fTreeRC.push_back(treesConfig);
-    fConstituentTreeRC.push_back(ConstituentTreeConfig);
-    fEECTreeRC.push_back(EECTreeConfig);
-    //fHistEEC.push_back(Hist_EEC_C);
-    fHistEEC_5_10.push_back(HistEEC_5_10_Config);
-    fHistEEC_10_15.push_back(HistEEC_10_15_Config);
-    fHistEEC_15_20.push_back(HistEEC_15_20_Config);
-    fHistEEC_20_30.push_back(HistEEC_20_30_Config);
-    fHistEEC_30_50.push_back(HistEEC_30_50_Config);
+    if(!mIsEmbedding) { //only create EEC trees and histograms for data, not embedding
+      fConstituentTreeRC.push_back(ConstituentTreeConfig);
+      fEECTreeRC.push_back(EECTreeConfig);
+      //fHistEEC.push_back(Hist_EEC_C);
+      fHistEEC_5_10.push_back(HistEEC_5_10_Config);
+      fHistEEC_10_15.push_back(HistEEC_10_15_Config);
+      fHistEEC_15_20.push_back(HistEEC_15_20_Config);
+      fHistEEC_20_30.push_back(HistEEC_20_30_Config);
+      fHistEEC_30_50.push_back(HistEEC_30_50_Config);
+    }
 
     fileDir->cd();
   }
@@ -369,97 +384,102 @@ for (size_t iR = 0; iR < nR; ++iR) {
     if (!configDir) continue;
 
     for (int c3 = 1; c3 <= 3; ++c3) {
-    const int ciTree = c3 - 1;  // 0..2
+      const int ciTree = c3 - 1;  // 0..2
 
-    TDirectory* cdir = dynamic_cast<TDirectory*>(configDir->Get(kCentTag[c3]));
-    if (!cdir) continue;
-    cdir->cd();
+      TDirectory* cdir = dynamic_cast<TDirectory*>(configDir->Get(kCentTag[c3]));
+      if (!cdir) continue;
+      cdir->cd();
 
-    // --- write the tree
-    if (iR < fTreeRC.size() && ciTree >= 0 &&
+      // --- write the tree
+      if (iR < fTreeRC.size() && ciTree >= 0 &&
         ciTree < (int)fTreeRC[iR][iConfig].size() &&
         fTreeRC[iR][iConfig][ciTree]) {
-      fTreeRC[iR][iConfig][ciTree]->Write();
-    }
-/*
-    if (iR < fConstituentTreeRC.size() && ciTree >= 0 &&
-      ciTree < (int)fConstituentTreeRC[iR][iConfig].size() &&
-      fConstituentTreeRC[iR][iConfig][ciTree]) {
-      fConstituentTreeRC[iR][iConfig][ciTree]->Write();
-    }
+          fTreeRC[iR][iConfig][ciTree]->Write();
+      }
 
-    if (iR < fEECTreeRC.size() && ciTree >= 0 &&
-      ciTree < (int)fEECTreeRC[iR][iConfig].size() &&
-      fEECTreeRC[iR][iConfig][ciTree]) {
-      fEECTreeRC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
-    }
-*/
-    // --- Normalize histograms for each R and centrality
-    if(iR < fHistEEC_5_10.size() && ciTree >= 0 && ciTree < (int)fHistEEC_5_10[iR][iConfig].size()) {
-      TH1D* h = fHistEEC_5_10[iR][iConfig][ciTree];
-      double integral = h->Integral("width"); // includes bin width automatically
-      if (integral > 0) h->Scale(1.0 / integral);
-    }
+      if (!mIsEmbedding) { //only write EEC trees and histograms for data, not embedding
+        /*
+        if (iR < fConstituentTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)fConstituentTreeRC[iR][iConfig].size() &&
+          fConstituentTreeRC[iR][iConfig][ciTree]) {
+          fConstituentTreeRC[iR][iConfig][ciTree]->Write();
+        }
 
-    if (iR < fHistEEC_10_15.size() && ciTree >= 0 && ciTree < (int)fHistEEC_10_15[iR][iConfig].size()) {
-      TH1D* h = fHistEEC_10_15[iR][iConfig][ciTree];
-      double integral = h->Integral("width"); // includes bin width automatically
-      if (integral > 0) h->Scale(1.0 / integral);
-    }
+        if (iR < fEECTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)fEECTreeRC[iR][iConfig].size() &&
+          fEECTreeRC[iR][iConfig][ciTree]) {
+          fEECTreeRC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
+        }
+        */
+        // --- Normalize histograms for each R and centrality
+        if(iR < fHistEEC_5_10.size() && ciTree >= 0 && ciTree < (int)fHistEEC_5_10[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_5_10[iR][iConfig][ciTree];
+          double integral = h->Integral("width"); // includes bin width automatically
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
 
-    if (iR < fHistEEC_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_15_20[iR][iConfig].size()) {
-      TH1D* h = fHistEEC_15_20[iR][iConfig][ciTree];
-      double integral = h->Integral("width"); // includes bin width automatically
-      if (integral > 0) h->Scale(1.0 / integral);
-    }
+        if (iR < fHistEEC_10_15.size() && ciTree >= 0 && ciTree < (int)fHistEEC_10_15[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_10_15[iR][iConfig][ciTree];
+          double integral = h->Integral("width"); // includes bin width automatically
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
 
-    if (iR < fHistEEC_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_20_30[iR][iConfig].size()) {
-      TH1D* h = fHistEEC_20_30[iR][iConfig][ciTree];
-      double integral = h->Integral("width");
-     if (integral > 0) h->Scale(1.0 / integral);
-    }
+        if (iR < fHistEEC_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_15_20[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_15_20[iR][iConfig][ciTree];
+          double integral = h->Integral("width"); // includes bin width automatically
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
 
-    if (iR < fHistEEC_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_30_50[iR][iConfig].size()) {
-      TH1D* h = fHistEEC_30_50[iR][iConfig][ciTree];
-      double integral = h->Integral("width");
-      if (integral > 0) h->Scale(1.0 / integral);
-    }
+        if (iR < fHistEEC_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_20_30[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_20_30[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
 
-    /*if (iR < fHistEEC.size() && ciTree >= 0 &&
-      ciTree < (int)fHistEEC[iR].size() &&
-      fHistEEC[iR][iConfig][ciTree]) {
-      fHistEEC[iR][iConfig][ciTree]->Write();
-    }*/
+        if (iR < fHistEEC_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_30_50[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_30_50[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        /*
+        if (iR < fHistEEC.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC[iR].size() &&
+          fHistEEC[iR][iConfig][ciTree]) {
+          fHistEEC[iR][iConfig][ciTree]->Write();
+        }
+        */
     
-    if (iR < fHistEEC_5_10.size() && ciTree >= 0 &&
-      ciTree < (int)fHistEEC_5_10[iR][iConfig].size() &&
-      fHistEEC_5_10[iR][iConfig][ciTree]) {
-      fHistEEC_5_10[iR][iConfig][ciTree]->Write();
-    }
+        if (iR < fHistEEC_5_10.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_5_10[iR][iConfig].size() &&
+          fHistEEC_5_10[iR][iConfig][ciTree]) {
+          fHistEEC_5_10[iR][iConfig][ciTree]->Write();
+        }
     
-    if (iR < fHistEEC_10_15.size() && ciTree >= 0 &&
-      ciTree < (int)fHistEEC_10_15[iR][iConfig].size() &&
-      fHistEEC_10_15[iR][iConfig][ciTree]) {
-      fHistEEC_10_15[iR][iConfig][ciTree]->Write();
-    }
+        if (iR < fHistEEC_10_15.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_10_15[iR][iConfig].size() &&
+          fHistEEC_10_15[iR][iConfig][ciTree]) {
+          fHistEEC_10_15[iR][iConfig][ciTree]->Write();
+        }
 
-    if (iR < fHistEEC_15_20.size() && ciTree >= 0 &&
-      ciTree < (int)fHistEEC_15_20[iR][iConfig].size() &&
-      fHistEEC_15_20[iR][iConfig][ciTree]) {
-      fHistEEC_15_20[iR][iConfig][ciTree]->Write();
-    }
+        if (iR < fHistEEC_15_20.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_15_20[iR][iConfig].size() &&
+          fHistEEC_15_20[iR][iConfig][ciTree]) {
+          fHistEEC_15_20[iR][iConfig][ciTree]->Write();
+        }
     
-    if (iR < fHistEEC_20_30.size() && ciTree >= 0 &&
-      ciTree < (int)fHistEEC_20_30[iR][iConfig].size() &&
-      fHistEEC_20_30[iR][iConfig][ciTree]) {
-      fHistEEC_20_30[iR][iConfig][ciTree]->Write();
-    }
+        if (iR < fHistEEC_20_30.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_20_30[iR][iConfig].size() &&
+          fHistEEC_20_30[iR][iConfig][ciTree]) {
+          fHistEEC_20_30[iR][iConfig][ciTree]->Write();
+        }
     
-    if (iR < fHistEEC_30_50.size() && ciTree >= 0 &&
-      ciTree < (int)fHistEEC_30_50[iR][iConfig].size() &&
-      fHistEEC_30_50[iR][iConfig][ciTree]) {
-      fHistEEC_30_50[iR][iConfig][ciTree]->Write();
-    }
+        if (iR < fHistEEC_30_50.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_30_50[iR][iConfig].size() &&
+          fHistEEC_30_50[iR][iConfig][ciTree]) {
+          fHistEEC_30_50[iR][iConfig][ciTree]->Write();
+        }
+      }
     } // c3
  
   } // charged/full
@@ -486,10 +506,10 @@ int StPicoHFJetMaker::MakeJets() {
   vector<fastjet::PseudoJet> fullTracks;
   vector<fastjet::PseudoJet> MCjetTracks;
 
-  fRunNumber = mPicoDst->event()->runId();
+  fRunNumber = mPicoDst->event()->runId(); // runID
   fEventId = mPicoDst->event()->eventId(); // eventID
-  int refMult = mPicoDst->event()->refMult();
-  double vz = mPrimVtx.z();
+  int refMult = mPicoDst->event()->refMult(); // refMult for centrality determination
+  double vz = mPrimVtx.z(); // vertex z for centrality determination
   mRefmultCorrUtil->setEvent(fRunNumber, refMult, mPicoDst->event()->ZDCx(),
                              vz);
   fCentrality = mRefmultCorrUtil->centrality9(); // 0 = 0-5 %,..., 8 = 70-80
@@ -800,9 +820,9 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
       fastjet::Selector fiducial_cut_selector = fastjet::SelectorAbsEtaMax(maxRapJet);
       std::vector<fastjet::PseudoJet> RecoJets = fiducial_cut_selector(fjets_all);
       myRecoJets.reserve(RecoJets.size());
-      if (!mIsEmbedding){
-        for (size_t j = 0; j < RecoJets.size(); ++j) {
-          myRecoJets.push_back(MyJet(RecoJets[j], rho));
+      for (size_t j = 0; j < RecoJets.size(); ++j) {
+        myRecoJets.push_back(MyJet(RecoJets[j], rho));
+        if (!mIsEmbedding){
           auto constituents = RecoJets[j].constituents();
           for (const auto& c : constituents) {
             if (c.pt() < 0.1) continue; // Skip very low pT constituents
@@ -906,8 +926,8 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
       }
     } 
 
-  //if (ptMaxVeto > 0.0 && !vetoReco && !fullTracks.empty()) { //comment for charged jets, use jetTracks for veto check to be consistent with clustering and rho estimation
-  if (ptMaxVeto > 0.0 && !vetoReco && !tracks.empty()) { //comment for full jets, use jetTracks for veto check to be consistent with clustering and rho estimation
+
+  if (ptMaxVeto > 0.0 && !vetoReco && !tracks.empty()) {
   for (size_t jr = 0; jr < myRecoJets.size(); ++jr) {
     if (myRecoJets[jr].pt_corr > ptMaxVeto) {
       return kStOK; // veto whole event
@@ -936,7 +956,7 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
     for (size_t j = 0; j < McJets.size(); ++j) {
       myMcJets.push_back(MyJet(McJets[j], 0.0f)); // rho = 0 for truth
     }
-
+    
     //========================= MC–Reco matching ===========================//
     vector<MatchedJetPair> MatchedJets =
         MatchJetsEtaPhi(myMcJets, myRecoJets, fR[i]);
@@ -971,7 +991,7 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
   } // end embedding/data
   
   } // end loop over R
-  }
+  } // end loop over configs
   return kStOK;
 }
 
