@@ -37,19 +37,52 @@ const char* kCentTag[4] = { // centrality classes
 
 const std::vector<TString> StPicoHFJetMaker::fConfigNames = {"full", "charged"}; // configurations for jet finding and background estimation
 
-if(!mIsEmbedding) { // use these variables only for data (not embedding)
-  std::vector<float> phi_vector;
-  std::vector<float> eta_vector;
-  std::vector<float> E_vector;
-  std::vector<float> pt_vector;
-  float c_px, c_py, c_pz, c_pt, c_E, c_phi, c_eta;
-  int c_charge;
-  int c_runid, c_eventid, c_ijet;
-  int eec_ijet, eec_eventid, eec_runid;
-  float eec_1, RL;
-  //float EEC_low, EEC_mid, EEC_high;
-}
+std::vector<float> phi_vector;
+std::vector<float> eta_vector;
+std::vector<float> E_vector;
+std::vector<float> pt_vector;
+float c_px, c_py, c_pz, c_pt, c_E, c_phi, c_eta;
+int c_charge;
+int c_runid, c_eventid, c_ijet;
+int eec_ijet, eec_eventid, eec_runid;
+float eec_data, RL;
+//float EEC_low, EEC_mid, EEC_high;
+
  
+
+//MC constituents and EEC variables
+std::vector<float> mc_phi_vector;
+std::vector<float> mc_eta_vector;
+std::vector<float> mc_E_vector;
+std::vector<float> mc_pt_vector;
+float c_mc_px, c_mc_py, c_mc_pz, c_mc_pt, c_mc_E, c_mc_phi, c_mc_eta;
+int c_mc_charge;
+int c_mc_runid, c_mc_eventid, c_mc_ijet;
+int eec_mc_ijet, eec_mc_eventid, eec_mc_runid;
+float eec_mc, RL_mc;
+
+//Matched constituents and EEC variables
+std::vector<float> matched_phi_vector;
+std::vector<float> matched_eta_vector;
+std::vector<float> matched_E_vector;
+std::vector<float> matched_pt_vector;
+float c_matched_px, c_matched_py, c_matched_pz, c_matched_pt, c_matched_E, c_matched_phi, c_matched_eta;
+int c_matched_charge;
+int c_matched_runid, c_matched_eventid, c_matched_ijet;
+int eec_matched_ijet, eec_matched_eventid, eec_matched_runid;
+float eec_matched, RL_matched;
+
+//Unmatched constituents and EEC variables
+std::vector<float> unmatched_phi_vector;
+std::vector<float> unmatched_eta_vector;
+std::vector<float> unmatched_E_vector;
+std::vector<float> unmatched_pt_vector;
+float c_unmatched_px, c_unmatched_py, c_unmatched_pz, c_unmatched_pt, c_unmatched_E, c_unmatched_phi, c_unmatched_eta;
+int c_unmatched_charge;
+int c_unmatched_runid, c_unmatched_eventid, c_unmatched_ijet;
+int eec_unmatched_ijet, eec_unmatched_eventid, eec_unmatched_runid;
+float eec_unmatched, RL_unmatched;
+
 //---------------------Binning for EEC------------------------
 //Limits for R=0,2
 int N_bins_02 = 33;
@@ -155,28 +188,91 @@ int StPicoHFJetMaker::InitJets() {
   
 
   //---------------------------Vectors of TTrees and histograms for different R and centrality classes---------------------------
-  
+  //JetTrees
   TDirectory* fileDir = gDirectory;
   fTreeRC.clear();
   fTreeRC.reserve(fR.size());
-  if(!mIsEmbedding) {//only create EEC trees and histograms for data, not embedding
-    fConstituentTreeRC.clear();
-    fConstituentTreeRC.reserve(fR.size());
-    fEECTreeRC.clear();
-    fEECTreeRC.reserve(fR.size());
-    //fHistEEC.clear();
-    //fHistEEC.reserve(fR.size());
-    fHistEEC_5_10.clear();
-    fHistEEC_5_10.reserve(fR.size());
-    fHistEEC_10_15.clear();
-    fHistEEC_10_15.reserve(fR.size());
-    fHistEEC_15_20.clear();
-    fHistEEC_15_20.reserve(fR.size());
-    fHistEEC_20_30.clear();
-    fHistEEC_20_30.reserve(fR.size());
-    fHistEEC_30_50.clear();
-    fHistEEC_30_50.reserve(fR.size());
-  }
+
+  MCJetTreeRC.clear();
+  MCJetTreeRC.reserve(fR.size());
+  //Constituent trees and EEC trees for data
+  fConstituentTreeRC.clear();
+  fConstituentTreeRC.reserve(fR.size());
+  fEECTreeRC.clear();
+  fEECTreeRC.reserve(fR.size());
+  
+  
+  //EEC histograms for data
+  //fHistEEC.clear();
+  //fHistEEC.reserve(fR.size());
+  fHistEEC_5_10.clear();
+  fHistEEC_5_10.reserve(fR.size());
+  fHistEEC_10_15.clear();
+  fHistEEC_10_15.reserve(fR.size());
+  fHistEEC_15_20.clear();
+  fHistEEC_15_20.reserve(fR.size());
+  fHistEEC_20_30.clear();
+  fHistEEC_20_30.reserve(fR.size());
+  fHistEEC_30_50.clear();
+  fHistEEC_30_50.reserve(fR.size());
+  
+
+  //Trees for embedding: matched jets, unmatched jets, and MC jets
+  fMatchedJetConstituentTreeRC.clear();
+  fMatchedJetConstituentTreeRC.reserve(fR.size());
+  fUnmatchedJetConstituentTreeRC.clear();
+  fUnmatchedJetConstituentTreeRC.reserve(fR.size());
+  fMCJetConstituentTreeRC.clear();
+  fMCJetConstituentTreeRC.reserve(fR.size());
+  fEECTreeunmatchedRC.clear();
+  fEECTreeunmatchedRC.reserve(fR.size());
+  fEECTreematchedRC.clear();
+  fEECTreematchedRC.reserve(fR.size());
+  fEECTree_MC_RC.clear();
+  fEECTree_MC_RC.reserve(fR.size());
+
+  //Histograms for embedding: matched jets, unmatched jets, and MC jets
+  fHistEEC_MC_5_10.clear();
+  fHistEEC_MC_5_10.reserve(fR.size());
+  fHistEEC_MC_10_15.clear();
+  fHistEEC_MC_10_15.reserve(fR.size());
+  fHistEEC_MC_15_20.clear();
+  fHistEEC_MC_15_20.reserve(fR.size());
+  fHistEEC_MC_20_30.clear();
+  fHistEEC_MC_20_30.reserve(fR.size());
+  fHistEEC_MC_30_50.clear();
+  fHistEEC_MC_30_50.reserve(fR.size());
+  fHistEEC_MC_50_100.clear();
+  fHistEEC_MC_50_100.reserve(fR.size());
+
+  fHistEEC_matched_5_10.clear();
+  fHistEEC_matched_5_10.reserve(fR.size());
+  fHistEEC_matched_10_15.clear();
+  fHistEEC_matched_10_15.reserve(fR.size());
+  fHistEEC_matched_15_20.clear();
+  fHistEEC_matched_15_20.reserve(fR.size());
+  fHistEEC_matched_20_30.clear();
+  fHistEEC_matched_20_30.reserve(fR.size());
+  fHistEEC_matched_30_50.clear();
+  fHistEEC_matched_30_50.reserve(fR.size());
+  fHistEEC_matched_50_100.clear();
+  fHistEEC_matched_50_100.reserve(fR.size());
+
+  fHistEEC_unmatched_5_10.clear();
+  fHistEEC_unmatched_5_10.reserve(fR.size());
+  fHistEEC_unmatched_10_15.clear();
+  fHistEEC_unmatched_10_15.reserve(fR.size());
+  fHistEEC_unmatched_15_20.clear();
+  fHistEEC_unmatched_15_20.reserve(fR.size());
+  fHistEEC_unmatched_20_30.clear();
+  fHistEEC_unmatched_20_30.reserve(fR.size());
+  fHistEEC_unmatched_30_50.clear();
+  fHistEEC_unmatched_30_50.reserve(fR.size());
+  fHistEEC_unmatched_50_100.clear();
+  fHistEEC_unmatched_50_100.reserve(fR.size());
+  
+  fHistEEC_unmatched_all.clear();
+  fHistEEC_unmatched_all.reserve(fR.size());
 
   for (size_t iR = 0; iR < fR.size(); ++iR) { // loop over R values
     const TString rName = Form("R%.1f", fR[iR]); // directory name for this R
@@ -202,22 +298,80 @@ int StPicoHFJetMaker::InitJets() {
     // create vectors to hold TTrees and histograms for this R; we'll fill these and then add them to the main vectors after the loop over centrality classes
     std::vector<std::vector<TTree*>> treesConfig;
     treesConfig.reserve(2);
-    if (!mIsEmbedding) { //only create EEC trees and histograms for data, not embedding
-      std::vector<std::vector<TTree*>> ConstituentTreeConfig;
-      ConstituentTreeConfig.reserve(2);
-      std::vector<std::vector<TTree*>> EECTreeConfig;
-      EECTreeConfig.reserve(2);
-      std::vector<std::vector<TH1D*>> HistEEC_5_10_Config;
-      HistEEC_5_10_Config.reserve(2);
-      std::vector<std::vector<TH1D*>> HistEEC_10_15_Config;
-      HistEEC_10_15_Config.reserve(2);    
-      std::vector<std::vector<TH1D*>> HistEEC_15_20_Config;
-      HistEEC_15_20_Config.reserve(2);
-      std::vector<std::vector<TH1D*>> HistEEC_20_30_Config;
-      HistEEC_20_30_Config.reserve(2);
-      std::vector<std::vector<TH1D*>> HistEEC_30_50_Config;
-      HistEEC_30_50_Config.reserve(2);
-    }
+
+
+    std::vector<std::vector<TTree*>> MCJetTreeConfig;
+    MCJetTreeConfig.reserve(2);
+
+    std::vector<std::vector<TTree*>> ConstituentTreeConfig;
+    ConstituentTreeConfig.reserve(2);
+    std::vector<std::vector<TTree*>> EECTreeConfig;
+    EECTreeConfig.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_5_10_Config;
+    HistEEC_5_10_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_10_15_Config;
+    HistEEC_10_15_Config.reserve(2);    
+    std::vector<std::vector<TH1D*>> HistEEC_15_20_Config;
+    HistEEC_15_20_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_20_30_Config;
+    HistEEC_20_30_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_30_50_Config;
+    HistEEC_30_50_Config.reserve(2);
+    
+    std::vector<std::vector<TTree*>> EECTreematchedConfig;
+    EECTreematchedConfig.reserve(2);
+    std::vector<std::vector<TTree*>> EECTreeunmatchedConfig;
+    EECTreeunmatchedConfig.reserve(2);
+    std::vector<std::vector<TTree*>> EECTree_MC_Config;
+    EECTree_MC_Config.reserve(2);
+    std::vector<std::vector<TTree*>> MatchedJetConstituentTreeConfig;
+    MatchedJetConstituentTreeConfig.reserve(2);
+    std::vector<std::vector<TTree*>> UnmatchedJetConstituentTreeConfig;
+    UnmatchedJetConstituentTreeConfig.reserve(2);
+    std::vector<std::vector<TTree*>> MCJetConstituentTreeConfig;
+    MCJetConstituentTreeConfig.reserve(2);
+    
+    std::vector<std::vector<TH1D*>> HistEEC_MC_5_10_Config;
+    HistEEC_MC_5_10_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_MC_10_15_Config;
+    HistEEC_MC_10_15_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_MC_15_20_Config;
+    HistEEC_MC_15_20_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_MC_20_30_Config;
+    HistEEC_MC_20_30_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_MC_30_50_Config;
+    HistEEC_MC_30_50_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_MC_50_100_Config;
+    HistEEC_MC_50_100_Config.reserve(2);
+
+    std::vector<std::vector<TH1D*>> HistEEC_matched_5_10_Config;
+    HistEEC_matched_5_10_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_matched_10_15_Config;
+    HistEEC_matched_10_15_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_matched_15_20_Config;
+    HistEEC_matched_15_20_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_matched_20_30_Config;
+    HistEEC_matched_20_30_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_matched_30_50_Config;
+    HistEEC_matched_30_50_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_matched_50_100_Config;
+    HistEEC_matched_50_100_Config.reserve(2);
+
+    std::vector<std::vector<TH1D*>> HistEEC_unmatched_5_10_Config;
+    HistEEC_unmatched_5_10_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_unmatched_10_15_Config;
+    HistEEC_unmatched_10_15_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_unmatched_15_20_Config;
+    HistEEC_unmatched_15_20_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_unmatched_20_30_Config;
+    HistEEC_unmatched_20_30_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_unmatched_30_50_Config;
+    HistEEC_unmatched_30_50_Config.reserve(2);
+    std::vector<std::vector<TH1D*>> HistEEC_unmatched_50_100_Config;
+    HistEEC_unmatched_50_100_Config.reserve(2);
+
+    std::vector<std::vector<TH1D*>> HistEEC_unmatched_all_Config;
+    HistEEC_unmatched_all_Config.reserve(2);
 
     for (size_t iConfig = 0; iConfig < fConfigNames.size(); ++iConfig){ // loop over configurations (full, charged)
       TDirectory* configDir = rdir->mkdir(fConfigNames[iConfig]); // create directory for this configuration
@@ -227,25 +381,83 @@ int StPicoHFJetMaker::InitJets() {
       //Create vectors to hold TTrees and histograms for this configuration; we'll fill these and then add them to the main vectors after the loop over centrality classes
       std::vector<TTree*> treesC;  // 3 classes: 1..3 (we'll index 0..2)
       treesC.reserve(3);
-      if (!mIsEmbedding) { //only create EEC trees and histograms for data, not embedding
-        std::vector<TTree*> ConstituentTreeC; // member of StPicoHFJetMaker
-        ConstituentTreeC.reserve(3);
-        std::vector<TTree*> EECTreeC; // member of StPicoHFJetMaker
-        EECTreeC.reserve(3);
-        //std::vector<TH1D*> Hist_EEC_C; // member of StPicoHFJetMaker
-        //Hist_EEC_C.reserve(3);
-        std::vector<TH1D*> Hist_EEC_C_5_10; // member of StPicoHFJetMaker
-        Hist_EEC_C_5_10.reserve(3);
-        std::vector<TH1D*> Hist_EEC_C_10_15; // member of StPicoHFJetMaker
-        Hist_EEC_C_10_15.reserve(3);
-        std::vector<TH1D*> Hist_EEC_C_15_20; // member of StPicoHFJetMaker
-        Hist_EEC_C_15_20.reserve(3);
-        std::vector<TH1D*> Hist_EEC_C_20_30; // member of StPicoHFJetMaker
-        Hist_EEC_C_20_30.reserve(3);
-        std::vector<TH1D*> Hist_EEC_C_30_50; // member of StPicoHFJetMaker
-        Hist_EEC_C_30_50.reserve(3);
-      }
 
+      std::vector<TTree*> MCJetTreeC;  // 3 classes: 1..3 (we'll index 0..2)
+      MCJetTreeC.reserve(3);
+
+      std::vector<TTree*> ConstituentTreeC; // member of StPicoHFJetMaker
+      ConstituentTreeC.reserve(3);
+      std::vector<TTree*> EECTreeC; // member of StPicoHFJetMaker
+      EECTreeC.reserve(3);
+      //std::vector<TH1D*> Hist_EEC_C; // member of StPicoHFJetMaker
+      //Hist_EEC_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_C_5_10; // member of StPicoHFJetMaker
+      Hist_EEC_C_5_10.reserve(3);
+      std::vector<TH1D*> Hist_EEC_C_10_15; // member of StPicoHFJetMaker
+      Hist_EEC_C_10_15.reserve(3);
+      std::vector<TH1D*> Hist_EEC_C_15_20; // member of StPicoHFJetMaker
+      Hist_EEC_C_15_20.reserve(3);
+      std::vector<TH1D*> Hist_EEC_C_20_30; // member of StPicoHFJetMaker
+      Hist_EEC_C_20_30.reserve(3);
+      std::vector<TH1D*> Hist_EEC_C_30_50; // member of StPicoHFJetMaker
+      Hist_EEC_C_30_50.reserve(3);
+      
+
+      
+      std::vector<TTree*> EECTreematchedC; // member of StPicoHFJetMaker
+      EECTreematchedC.reserve(3);
+      std::vector<TTree*> EECTreeunmatchedC; // member of StPicoHFJetMaker
+      EECTreeunmatchedC.reserve(3);
+      std::vector<TTree*> EECTree_MC_C; // member of StPicoHFJetMaker
+      EECTree_MC_C.reserve(3);
+      std::vector<TTree*> MatchedJetConstituentTreeC; // member of StPicoHFJetMaker
+      MatchedJetConstituentTreeC.reserve(3);
+      std::vector<TTree*> UnmatchedJetConstituentTreeC; // member of StPicoHFJetMaker
+      UnmatchedJetConstituentTreeC.reserve(3);
+      std::vector<TTree*> MCJetConstituentTreeC; // member of StPicoHFJetMaker
+      MCJetConstituentTreeC.reserve(3);
+
+      std::vector<TH1D*> Hist_EEC_MC_5_10_C; // member of StPicoHFJetMaker
+      Hist_EEC_MC_5_10_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_MC_10_15_C; // member of StPicoHFJetMaker
+      Hist_EEC_MC_10_15_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_MC_15_20_C; // member of StPicoHFJetMaker
+      Hist_EEC_MC_15_20_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_MC_20_30_C; // member of StPicoHFJetMaker
+      Hist_EEC_MC_20_30_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_MC_30_50_C; // member of StPicoHFJetMaker
+      Hist_EEC_MC_30_50_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_MC_50_100_C; // member of StPicoHFJetMaker
+      Hist_EEC_MC_50_100_C.reserve(3);
+
+      std::vector<TH1D*> Hist_EEC_matched_5_10_C; // member of StPicoHFJetMaker
+      Hist_EEC_matched_5_10_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_matched_10_15_C; // member of StPicoHFJetMaker
+      Hist_EEC_matched_10_15_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_matched_15_20_C; // member of StPicoHFJetMaker
+      Hist_EEC_matched_15_20_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_matched_20_30_C; // member of StPicoHFJetMaker
+      Hist_EEC_matched_20_30_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_matched_30_50_C; // member of StPicoHFJetMaker
+      Hist_EEC_matched_30_50_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_matched_50_100_C; // member of StPicoHFJetMaker
+      Hist_EEC_matched_50_100_C.reserve(3);
+
+      std::vector<TH1D*> Hist_EEC_unmatched_5_10_C; // member of StPicoHFJetMaker
+      Hist_EEC_unmatched_5_10_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_unmatched_10_15_C; // member of StPicoHFJetMaker
+      Hist_EEC_unmatched_10_15_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_unmatched_15_20_C; // member of StPicoHFJetMaker
+      Hist_EEC_unmatched_15_20_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_unmatched_20_30_C; // member of StPicoHFJetMaker
+      Hist_EEC_unmatched_20_30_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_unmatched_30_50_C; // member of StPicoHFJetMaker
+      Hist_EEC_unmatched_30_50_C.reserve(3);
+      std::vector<TH1D*> Hist_EEC_unmatched_50_100_C; // member of StPicoHFJetMaker
+      Hist_EEC_unmatched_50_100_C.reserve(3);
+      
+      std::vector<TH1D*> Hist_EEC_unmatched_all_C; // member of StPicoHFJetMaker
+      Hist_EEC_unmatched_all_C.reserve(3);
 
       for (int c3 = 1; c3 <= 3; ++c3) { // loop over centrality classes (1..3); adjust as needed for your dataset
         TDirectory* cdir = configDir->mkdir(kCentTag[c3]); // create directory for this centrality class
@@ -309,7 +521,7 @@ int StPicoHFJetMaker::InitJets() {
           EECTree->Branch("ijet", &eec_ijet, "ijet/I");
           EECTree->Branch("runid", &eec_runid, "runid/I");
           EECTree->Branch("eventid", &eec_eventid, "eventid/I");
-          EECTree->Branch("eec", &eec_1, "eec/F");
+          EECTree->Branch("eec", &eec_data, "eec/F");
           EECTree->Branch("RL", &RL, "RL/F");
 
           EECTreeC.push_back(EECTree);
@@ -329,6 +541,148 @@ int StPicoHFJetMaker::InitJets() {
           Hist_EEC_C_30_50.push_back(hEEC_30_50);
         }
 
+        if(mIsEmbedding){
+
+          TTree* MCJetTree = new TTree("MCJetTree", "MC Jet Tree");
+          //MCJetTree->SetDirectory(0); // detach from file - won't be auto
+          MCJetTree->Branch("runId", &fRunNumber, "runId/I");
+          MCJetTree->Branch("eventId", &fEventId,   "eventId/I");
+          MCJetTree->Branch("centralityWeight", &fCentralityWeight, "centralityWeight/F"); 
+          MCJetTree->Branch("xsecWeight", &fXsecWeight, "xsecWeight/F");
+          MCJetTree->Branch("mc_pt", &fMcJet.pt, "mc_pt/F");
+          MCJetTree->Branch("mc_eta", &fMcJet.eta, "mc_eta/F");
+          MCJetTree->Branch("mc_phi", &fMcJet.phi, "mc_phi/F");
+          MCJetTree->Branch("mc_area", &fMcJet.area, "mc_area/F");
+          MCJetTree->Branch("mc_pt_lead", &fMcJet.pt_lead, "mc_pt_lead/F");
+          MCJetTree->Branch("mc_n_constituents", &fMcJet.n_constituents, "mc_n_constituents/I");
+          MCJetTree->Branch("mc_n_constituents_real", &fMcJet.n_constituents_real, "mc_n_constituents_real/I");
+
+          MCJetTreeC.push_back(MCJetTree);
+
+          TTree* MatchedJet_constituentTree = new TTree("MatchedJet_ConstituentTree", "Constituents of Matched Jets");
+          //MatchedJet_constituentTree->SetDirectory(0); // detach from file - won't be auto-saved
+          MatchedJet_constituentTree->Branch("runid", &c_matched_runid, "runid/I");
+          MatchedJet_constituentTree->Branch("eventid", &c_matched_eventid, "eventid/I");
+          MatchedJet_constituentTree->Branch("ijet", &c_matched_ijet, "ijet/I");
+          MatchedJet_constituentTree->Branch("px", &c_matched_px, "px/F");
+          MatchedJet_constituentTree->Branch("py", &c_matched_py, "py/F");
+          MatchedJet_constituentTree->Branch("pz", &c_matched_pz, "pz/F");
+          MatchedJet_constituentTree->Branch("pt", &c_matched_pt, "pt/F");
+          MatchedJet_constituentTree->Branch("E", &c_matched_E, "E/F");
+          MatchedJet_constituentTree->Branch("eta", &c_matched_eta, "eta/F");
+          MatchedJet_constituentTree->Branch("phi", &c_matched_phi, "phi/F");
+          MatchedJet_constituentTree->Branch("charge", &c_matched_charge, "charge/I");
+
+          MatchedJetConstituentTreeC.push_back(MatchedJet_constituentTree);
+
+          TTree* UnmatchedJet_constituentTree = new TTree("UnmatchedJet_ConstituentTree", "Constituents of Unmatched Jets");
+          //UnmatchedJet_constituentTree->SetDirectory(0); // detach from file - won't be auto-saved
+          UnmatchedJet_constituentTree->Branch("runid", &c_unmatched_runid, "runid/I");
+          UnmatchedJet_constituentTree->Branch("eventid", &c_unmatched_eventid, "eventid/I");
+          UnmatchedJet_constituentTree->Branch("ijet", &c_unmatched_ijet, "ijet/I");
+          UnmatchedJet_constituentTree->Branch("px", &c_unmatched_px, "px/F");
+          UnmatchedJet_constituentTree->Branch("py", &c_unmatched_py, "py/F");
+          UnmatchedJet_constituentTree->Branch("pz", &c_unmatched_pz, "pz/F");
+          UnmatchedJet_constituentTree->Branch("pt", &c_unmatched_pt, "pt/F");
+          UnmatchedJet_constituentTree->Branch("E", &c_unmatched_E, "E/F");
+          UnmatchedJet_constituentTree->Branch("eta", &c_unmatched_eta, "eta/F");
+          UnmatchedJet_constituentTree->Branch("phi", &c_unmatched_phi, "phi/F");
+          UnmatchedJet_constituentTree->Branch("charge", &c_unmatched_charge, "charge/I");
+
+          UnmatchedJetConstituentTreeC.push_back(UnmatchedJet_constituentTree);
+
+          TTree* MCJet_constituentTree = new TTree("MCJet_ConstituentTree", "Constituents of MC Jets");
+          //MCJet_constituentTree->SetDirectory(0); // detach from file - won't be auto-saved
+          MCJet_constituentTree->Branch("runid", &c_mc_runid, "runid/I");
+          MCJet_constituentTree->Branch("eventid", &c_mc_eventid, "eventid/I");
+          MCJet_constituentTree->Branch("ijet", &c_mc_ijet, "ijet/I");
+          MCJet_constituentTree->Branch("px", &c_mc_px, "px/F");
+          MCJet_constituentTree->Branch("py", &c_mc_py, "py/F");
+          MCJet_constituentTree->Branch("pz", &c_mc_pz, "pz/F");
+          MCJet_constituentTree->Branch("pt", &c_mc_pt, "pt/F");
+          MCJet_constituentTree->Branch("E", &c_mc_E, "E/F");
+          MCJet_constituentTree->Branch("eta", &c_mc_eta, "eta/F");
+          MCJet_constituentTree->Branch("phi", &c_mc_phi, "phi/F");
+          MCJet_constituentTree->Branch("charge", &c_mc_charge, "charge/I");
+
+          MCJetConstituentTreeC.push_back(MCJet_constituentTree);
+
+          TTree* EECTree_unmatchedReco = new TTree("EECTree_UnmatchedRecoJets", "EEC for Unmatched Reco Jets");
+          EECTree_unmatchedReco->SetDirectory(0); // detach from file - won't be auto-saved
+          EECTree_unmatchedReco->Branch("ijet", &eec_unmatched_ijet, "ijet/I");
+          EECTree_unmatchedReco->Branch("runid", &eec_unmatched_runid, "runid/I");
+          EECTree_unmatchedReco->Branch("eventid", &eec_unmatched_eventid, "eventid/I");
+          EECTree_unmatchedReco->Branch("eec", &eec_unmatched, "eec/F");
+          EECTree_unmatchedReco->Branch("RL", &RL_unmatched, "RL/F");
+
+          EECTreeunmatchedC.push_back(EECTree_unmatchedReco);
+
+          TTree* EECTree_matchedjets = new TTree("EECTree_MatchedJets", "EEC for Matched Jets");
+          EECTree_matchedjets->SetDirectory(0); // detach from file - won't be auto-saved
+          EECTree_matchedjets->Branch("ijet", &eec_matched_ijet, "ijet/I");
+          EECTree_matchedjets->Branch("runid", &eec_matched_runid, "runid/I");
+          EECTree_matchedjets->Branch("eventid", &eec_matched_eventid, "eventid/I");
+          EECTree_matchedjets->Branch("eec", &eec_matched, "eec/F");
+          EECTree_matchedjets->Branch("RL", &RL_matched, "RL/F");
+
+          EECTreematchedC.push_back(EECTree_matchedjets);
+
+
+          TTree* EECTree_MC = new TTree("EECTree_MCJets", "EEC for MC Jets");
+          EECTree_MC->SetDirectory(0); // detach from file - won't be auto-saved
+          EECTree_MC->Branch("ijet", &eec_mc_ijet, "ijet/I");
+          EECTree_MC->Branch("runid", &eec_mc_runid, "runid/I");
+          EECTree_MC->Branch("eventid", &eec_mc_eventid, "eventid/I");
+          EECTree_MC->Branch("eec", &eec_mc, "eec/F");
+          EECTree_MC->Branch("RL", &RL_mc, "RL/F");
+
+          EECTree_MC_C.push_back(EECTree_MC);
+          
+
+          TH1D* hEEC_MC_5_10 = new TH1D("hEEC_MC_5_10", "EEC vs RL for MC Jets with 5<=pT<10;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_MC_5_10_C.push_back(hEEC_MC_5_10);
+          TH1D* hEEC_MC_10_15 = new TH1D("hEEC_MC_10_15", "EEC vs RL for MC Jets with 10<=pT<15;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_MC_10_15_C.push_back(hEEC_MC_10_15);
+          TH1D* hEEC_MC_15_20 = new TH1D("hEEC_MC_15_20", "EEC vs RL for MC Jets with 15<=pT<20;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_MC_15_20_C.push_back(hEEC_MC_15_20);
+          TH1D* hEEC_MC_20_30 = new TH1D("hEEC_MC_20_30", "EEC vs RL for MC Jets with 20<=pT<30;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_MC_20_30_C.push_back(hEEC_MC_20_30);
+          TH1D* hEEC_MC_30_50 = new TH1D("hEEC_MC_30_50", "EEC vs RL for MC Jets with 30<=pT<50;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_MC_30_50_C.push_back(hEEC_MC_30_50);
+          TH1D* hEEC_MC_50_100 = new TH1D("hEEC_MC_50_100", "EEC vs RL for MC Jets with 50<=pT<100;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_MC_50_100_C.push_back(hEEC_MC_50_100);
+          
+
+          TH1D* hEEC_matched_5_10 = new TH1D("hEEC_matched_5_10", "EEC vs RL for Matched Reco Jets with 5<=pT<10;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_matched_5_10_C.push_back(hEEC_matched_5_10);
+          TH1D* hEEC_matched_10_15 = new TH1D("hEEC_matched_10_15", "EEC vs RL for Matched Reco Jets with 10<=pT<15;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_matched_10_15_C.push_back(hEEC_matched_10_15);
+          TH1D* hEEC_matched_15_20 = new TH1D("hEEC_matched_15_20", "EEC vs RL for Matched Reco Jets with 15<=pT<20;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_matched_15_20_C.push_back(hEEC_matched_15_20);
+          TH1D* hEEC_matched_20_30 = new TH1D("hEEC_matched_20_30", "EEC vs RL for Matched Reco Jets with 20<=pT<30;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_matched_20_30_C.push_back(hEEC_matched_20_30);
+          TH1D* hEEC_matched_30_50 = new TH1D("hEEC_matched_30_50", "EEC vs RL for Matched Reco Jets with 30<=pT<50;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_matched_30_50_C.push_back(hEEC_matched_30_50);
+          TH1D* hEEC_matched_50_100 = new TH1D("hEEC_matched_50_100", "EEC vs RL for Matched Reco Jets with 50<=pT<100;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_matched_50_100_C.push_back(hEEC_matched_50_100);
+
+          TH1D* hEEC_unmatched_5_10 = new TH1D("hEEC_unmatched_5_10", "EEC vs RL for Unmatched Reco Jets with 5<=pT<10;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_unmatched_5_10_C.push_back(hEEC_unmatched_5_10);
+          TH1D* hEEC_unmatched_10_15 = new TH1D("hEEC_unmatched_10_15", "EEC vs RL for Unmatched Reco Jets with 10<=pT<15;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_unmatched_10_15_C.push_back(hEEC_unmatched_10_15);
+          TH1D* hEEC_unmatched_15_20 = new TH1D("hEEC_unmatched_15_20", "EEC vs RL for Unmatched Reco Jets with 15<=pT<20;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_unmatched_15_20_C.push_back(hEEC_unmatched_15_20);
+          TH1D* hEEC_unmatched_20_30 = new TH1D("hEEC_unmatched_20_30", "EEC vs RL for Unmatched Reco Jets with 20<=pT<30;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_unmatched_20_30_C.push_back(hEEC_unmatched_20_30);
+          TH1D* hEEC_unmatched_30_50 = new TH1D("hEEC_unmatched_30_50", "EEC vs RL for Unmatched Reco Jets with 30<=pT<50;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_unmatched_30_50_C.push_back(hEEC_unmatched_30_50);
+          TH1D* hEEC_unmatched_50_100 = new TH1D("hEEC_unmatched_50_100", "EEC vs RL for Unmatched Reco Jets with 50<=pT<100;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_unmatched_50_100_C.push_back(hEEC_unmatched_50_100);
+
+          TH1D* hEEC_unmatched_all = new TH1D("hEEC_unmatched_all", "EEC vs RL for All Unmatched Reco Jets;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_unmatched_all_C.push_back(hEEC_unmatched_all);
+        }
+
         configDir->cd();
       }
     
@@ -342,6 +696,40 @@ int StPicoHFJetMaker::InitJets() {
         HistEEC_20_30_Config.push_back(Hist_EEC_C_20_30);
         HistEEC_30_50_Config.push_back(Hist_EEC_C_30_50);
       }
+
+      if (mIsEmbedding) {
+        MCJetTreeConfig.push_back(MCJetTreeC);
+        EECTreematchedConfig.push_back(EECTreematchedC);
+        EECTreeunmatchedConfig.push_back(EECTreeunmatchedC);
+        EECTree_MC_Config.push_back(EECTree_MC_C);
+        MatchedJetConstituentTreeConfig.push_back(MatchedJetConstituentTreeC);
+        UnmatchedJetConstituentTreeConfig.push_back(UnmatchedJetConstituentTreeC);
+        MCJetConstituentTreeConfig.push_back(MCJetConstituentTreeC);
+
+        HistEEC_MC_5_10_Config.push_back(Hist_EEC_MC_5_10_C);
+        HistEEC_MC_10_15_Config.push_back(Hist_EEC_MC_10_15_C);
+        HistEEC_MC_15_20_Config.push_back(Hist_EEC_MC_15_20_C);
+        HistEEC_MC_20_30_Config.push_back(Hist_EEC_MC_20_30_C);
+        HistEEC_MC_30_50_Config.push_back(Hist_EEC_MC_30_50_C);
+        HistEEC_MC_50_100_Config.push_back(Hist_EEC_MC_50_100_C);
+
+        HistEEC_matched_5_10_Config.push_back(Hist_EEC_matched_5_10_C);
+        HistEEC_matched_10_15_Config.push_back(Hist_EEC_matched_10_15_C);
+        HistEEC_matched_15_20_Config.push_back(Hist_EEC_matched_15_20_C);
+        HistEEC_matched_20_30_Config.push_back(Hist_EEC_matched_20_30_C);
+        HistEEC_matched_30_50_Config.push_back(Hist_EEC_matched_30_50_C);
+        HistEEC_matched_50_100_Config.push_back(Hist_EEC_matched_50_100_C);
+
+        HistEEC_unmatched_5_10_Config.push_back(Hist_EEC_unmatched_5_10_C);
+        HistEEC_unmatched_10_15_Config.push_back(Hist_EEC_unmatched_10_15_C);
+        HistEEC_unmatched_15_20_Config.push_back(Hist_EEC_unmatched_15_20_C);
+        HistEEC_unmatched_20_30_Config.push_back(Hist_EEC_unmatched_20_30_C);
+        HistEEC_unmatched_30_50_Config.push_back(Hist_EEC_unmatched_30_50_C);
+        HistEEC_unmatched_50_100_Config.push_back(Hist_EEC_unmatched_50_100_C);
+
+        HistEEC_unmatched_all_Config.push_back(Hist_EEC_unmatched_all_C);
+      }
+
       rdir->cd();
 
     }
@@ -357,6 +745,40 @@ int StPicoHFJetMaker::InitJets() {
       fHistEEC_15_20.push_back(HistEEC_15_20_Config);
       fHistEEC_20_30.push_back(HistEEC_20_30_Config);
       fHistEEC_30_50.push_back(HistEEC_30_50_Config);
+    }
+
+    if(mIsEmbedding) {
+      MCJetTreeRC.push_back(MCJetTreeConfig);
+
+      fEECTreematchedRC.push_back(EECTreematchedConfig);
+      fEECTreeunmatchedRC.push_back(EECTreeunmatchedConfig);
+      fEECTree_MC_RC.push_back(EECTree_MC_Config);
+      fMatchedJetConstituentTreeRC.push_back(MatchedJetConstituentTreeConfig);
+      fUnmatchedJetConstituentTreeRC.push_back(UnmatchedJetConstituentTreeConfig);
+      fMCJetConstituentTreeRC.push_back(MCJetConstituentTreeConfig);
+
+      fHistEEC_MC_5_10.push_back(HistEEC_MC_5_10_Config);
+      fHistEEC_MC_10_15.push_back(HistEEC_MC_10_15_Config);
+      fHistEEC_MC_15_20.push_back(HistEEC_MC_15_20_Config);
+      fHistEEC_MC_20_30.push_back(HistEEC_MC_20_30_Config);
+      fHistEEC_MC_30_50.push_back(HistEEC_MC_30_50_Config);
+      fHistEEC_MC_50_100.push_back(HistEEC_MC_50_100_Config);
+
+      fHistEEC_matched_5_10.push_back(HistEEC_matched_5_10_Config);
+      fHistEEC_matched_10_15.push_back(HistEEC_matched_10_15_Config);
+      fHistEEC_matched_15_20.push_back(HistEEC_matched_15_20_Config);
+      fHistEEC_matched_20_30.push_back(HistEEC_matched_20_30_Config);
+      fHistEEC_matched_30_50.push_back(HistEEC_matched_30_50_Config);
+      fHistEEC_matched_50_100.push_back(HistEEC_matched_50_100_Config);
+
+      fHistEEC_unmatched_5_10.push_back(HistEEC_unmatched_5_10_Config);
+      fHistEEC_unmatched_10_15.push_back(HistEEC_unmatched_10_15_Config);
+      fHistEEC_unmatched_15_20.push_back(HistEEC_unmatched_15_20_Config);
+      fHistEEC_unmatched_20_30.push_back(HistEEC_unmatched_20_30_Config);
+      fHistEEC_unmatched_30_50.push_back(HistEEC_unmatched_30_50_Config);
+      fHistEEC_unmatched_50_100.push_back(HistEEC_unmatched_50_100_Config);
+
+      fHistEEC_unmatched_all.push_back(HistEEC_unmatched_all_Config);
     }
 
     fileDir->cd();
@@ -478,6 +900,283 @@ for (size_t iR = 0; iR < nR; ++iR) {
           ciTree < (int)fHistEEC_30_50[iR][iConfig].size() &&
           fHistEEC_30_50[iR][iConfig][ciTree]) {
           fHistEEC_30_50[iR][iConfig][ciTree]->Write();
+        }
+      }
+      
+      //Embedding trees and histograms are written for both data and embedding, but only if mIsEmbedding is true. This allows us to have the same output structure for both cases, while only filling the embedding-specific trees and histograms when we are actually running on embedding.
+      if(mIsEmbedding){
+        if(iR < MCJetTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)MCJetTreeRC[iR][iConfig].size() &&
+          MCJetTreeRC[iR][iConfig][ciTree]) {
+          MCJetTreeRC[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fEECTreematchedRC.size() && ciTree >= 0 &&
+          ciTree < (int)fEECTreematchedRC[iR][iConfig].size() &&
+          fEECTreematchedRC[iR][iConfig][ciTree]) {
+          fEECTreematchedRC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
+        }
+
+        if (iR < fEECTreeunmatchedRC.size() && ciTree >= 0 &&
+          ciTree < (int)fEECTreeunmatchedRC[iR][iConfig].size() &&
+          fEECTreeunmatchedRC[iR][iConfig][ciTree]) {
+          fEECTreeunmatchedRC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
+        }
+
+        if (iR < fEECTree_MC_RC.size() && ciTree >= 0 &&
+          ciTree < (int)fEECTree_MC_RC[iR][iConfig].size() &&
+          fEECTree_MC_RC[iR][iConfig][ciTree]) {
+          fEECTree_MC_RC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
+        }
+
+        if (iR < fMatchedJetConstituentTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)fMatchedJetConstituentTreeRC[iR][iConfig].size() &&
+          fMatchedJetConstituentTreeRC[iR][iConfig][ciTree]) {
+          fMatchedJetConstituentTreeRC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
+        }
+
+        if (iR < fUnmatchedJetConstituentTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)fUnmatchedJetConstituentTreeRC[iR][iConfig].size() &&
+          fUnmatchedJetConstituentTreeRC[iR][iConfig][ciTree]) {
+          fUnmatchedJetConstituentTreeRC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
+        }
+
+        if (iR < fMCJetConstituentTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)fMCJetConstituentTreeRC[iR][iConfig].size() &&
+          fMCJetConstituentTreeRC[iR][iConfig][ciTree]) {
+          fMCJetConstituentTreeRC[iR][iConfig][ciTree]->Write("", TObject::kOverwrite);
+        }
+
+        //Histogram normalization for embedding histograms
+        if (iR < fHistEEC_MC_5_10.size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_5_10[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_MC_5_10[iR][iConfig][ciTree];
+          double integral = h->Integral("width"); // includes bin width automatically
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_MC_10_15.size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_10_15[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_MC_10_15[iR][iConfig][ciTree];
+          double integral = h->Integral("width"); // includes bin width automatically
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_MC_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_15_20[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_MC_15_20[iR][iConfig][ciTree];
+          double integral = h->Integral("width"); // includes bin width automatically
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_MC_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_20_30[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_MC_20_30[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_MC_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_30_50[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_MC_30_50[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_MC_50_100.size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_50_100[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_MC_50_100[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_matched_5_10.size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_5_10[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_matched_5_10[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_matched_10_15.size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_10_15[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_matched_10_15[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_matched_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_15_20[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_matched_15_20[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_matched_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_20_30[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_matched_20_30[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_matched_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_30_50[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_matched_30_50[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_matched_50_100.size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_50_100[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_matched_50_100[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_unmatched_5_10.size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_5_10[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_unmatched_5_10[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_unmatched_10_15.size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_10_15[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_unmatched_10_15[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_unmatched_15_20.size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_15_20[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_unmatched_15_20[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_unmatched_20_30.size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_20_30[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_unmatched_20_30[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_unmatched_30_50.size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_30_50[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_unmatched_30_50[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_unmatched_50_100.size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_50_100[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_unmatched_50_100[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+        if (iR < fHistEEC_unmatched_all.size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_all[iR][iConfig].size()) {
+          TH1D* h = fHistEEC_unmatched_all[iR][iConfig][ciTree];
+          double integral = h->Integral("width");
+          if (integral > 0) h->Scale(1.0 / integral);
+        }
+
+
+        //Histogram Writing for embedding histograms
+        
+        if (iR < fHistEEC_matched_5_10.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_matched_5_10[iR][iConfig].size() &&
+          fHistEEC_matched_5_10[iR][iConfig][ciTree]) {
+          fHistEEC_matched_5_10[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_matched_10_15.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_matched_10_15[iR][iConfig].size() &&
+          fHistEEC_matched_10_15[iR][iConfig][ciTree]) {
+          fHistEEC_matched_10_15[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_matched_15_20.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_matched_15_20[iR][iConfig].size() &&
+          fHistEEC_matched_15_20[iR][iConfig][ciTree]) {
+          fHistEEC_matched_15_20[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_matched_20_30.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_matched_20_30[iR][iConfig].size() &&
+          fHistEEC_matched_20_30[iR][iConfig][ciTree]) {
+          fHistEEC_matched_20_30[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_matched_30_50.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_matched_30_50[iR][iConfig].size() &&
+          fHistEEC_matched_30_50[iR][iConfig][ciTree]) {
+          fHistEEC_matched_30_50[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_matched_50_100.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_matched_50_100[iR][iConfig].size() &&
+          fHistEEC_matched_50_100[iR][iConfig][ciTree]) {
+          fHistEEC_matched_50_100[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_MC_5_10.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_MC_5_10[iR][iConfig].size() &&
+          fHistEEC_MC_5_10[iR][iConfig][ciTree]) {
+          fHistEEC_MC_5_10[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_MC_10_15.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_MC_10_15[iR][iConfig].size() &&
+          fHistEEC_MC_10_15[iR][iConfig][ciTree]) {
+          fHistEEC_MC_10_15[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_MC_15_20.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_MC_15_20[iR][iConfig].size() &&
+          fHistEEC_MC_15_20[iR][iConfig][ciTree]) {
+          fHistEEC_MC_15_20[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_MC_20_30.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_MC_20_30[iR][iConfig].size() &&
+          fHistEEC_MC_20_30[iR][iConfig][ciTree]) {
+          fHistEEC_MC_20_30[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_MC_30_50.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_MC_30_50[iR][iConfig].size() &&
+          fHistEEC_MC_30_50[iR][iConfig][ciTree]) {
+          fHistEEC_MC_30_50[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_MC_50_100.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_MC_50_100[iR][iConfig].size() &&
+          fHistEEC_MC_50_100[iR][iConfig][ciTree]) {
+          fHistEEC_MC_50_100[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_unmatched_5_10.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_unmatched_5_10[iR][iConfig].size() &&
+          fHistEEC_unmatched_5_10[iR][iConfig][ciTree]) {
+          fHistEEC_unmatched_5_10[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_unmatched_10_15.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_unmatched_10_15[iR][iConfig].size() &&
+          fHistEEC_unmatched_10_15[iR][iConfig][ciTree]) {
+          fHistEEC_unmatched_10_15[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_unmatched_15_20.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_unmatched_15_20[iR][iConfig].size() &&
+          fHistEEC_unmatched_15_20[iR][iConfig][ciTree]) {
+          fHistEEC_unmatched_15_20[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_unmatched_20_30.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_unmatched_20_30[iR][iConfig].size() &&
+          fHistEEC_unmatched_20_30[iR][iConfig][ciTree]) {
+          fHistEEC_unmatched_20_30[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_unmatched_30_50.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_unmatched_30_50[iR][iConfig].size() &&
+          fHistEEC_unmatched_30_50[iR][iConfig][ciTree]) {
+          fHistEEC_unmatched_30_50[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_unmatched_50_100.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_unmatched_50_100[iR][iConfig].size() &&
+          fHistEEC_unmatched_50_100[iR][iConfig][ciTree]) {
+          fHistEEC_unmatched_50_100[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_unmatched_all.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_unmatched_all[iR][iConfig].size() &&
+          fHistEEC_unmatched_all[iR][iConfig][ciTree]) {
+          fHistEEC_unmatched_all[iR][iConfig][ciTree]->Write();
         }
       }
     } // c3
@@ -682,7 +1381,8 @@ for (unsigned int i = 0; i < mIdxPicoParticles.size(); i++) {
 
   fastjet::PseudoJet pj(p.x(), p.y(), p.z(), p.Mag());
   pj.set_user_index(charged); // for reco tracks, user_index = charge (will be 0 for neutrals from towers)
-/*
+
+  /*
   if (mIsEmbedding) {
     if (trk->qaTruth() > 95) pj.set_user_index(trk->idTruth() - 1);
     else                     pj.set_user_index(trk->charge() ? 1 : 0);
@@ -690,6 +1390,7 @@ for (unsigned int i = 0; i < mIdxPicoParticles.size(); i++) {
     pj.set_user_index(trk->charge() ? 1 : 0);
   } 
   */
+  
   jetTracks.push_back(pj);
 
 } // end loop over primary tracks
@@ -773,6 +1474,8 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
     //EEC_high = 0.0;
 
     //==============================Reco jets===============================//
+
+    //Create Trees for each R, config, centrality class
     TTree* jetTree = 0;
     const int ciTree = c3 - 1;
     if (i < fTreeRC.size() && iConfig < fTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fTreeRC[i][iConfig].size())
@@ -781,10 +1484,12 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
     TTree* constituentTree = 0;
     if (i < fConstituentTreeRC.size() && iConfig < fConstituentTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fConstituentTreeRC[i][iConfig].size())
       constituentTree = fConstituentTreeRC[i][iConfig][ciTree];
-
+  
     TTree* try_EECTree = 0;
     if (i < fEECTreeRC.size() && iConfig < fEECTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fEECTreeRC[i][iConfig].size())
-      try_EECTree = fEECTreeRC[i][iConfig][ciTree];
+    try_EECTree = fEECTreeRC[i][iConfig][ciTree];
+    
+    //Create EEC histograms for each R, config, centrality class 
 
     //TH1D* hEEC = 0;
     //if (i < fHistEEC.size() && ciTree >= 0 && ciTree < (int)fHistEEC[i].size())
@@ -809,7 +1514,117 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
     TH1D* hEEC_30_50 = 0;
     if (i < fHistEEC_30_50.size() && iConfig < fHistEEC_30_50[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_30_50[i][iConfig].size())
       hEEC_30_50 = fHistEEC_30_50[i][iConfig][ciTree];
+    
+    TTree* MCJetTree = 0;
+    if (i < MCJetTreeRC.size() && iConfig < MCJetTreeRC[i].size() && ciTree >= 0 && ciTree < (int)MCJetTreeRC[i][iConfig].size())
+      MCJetTree = MCJetTreeRC[i][iConfig][ciTree];
 
+
+    //Create Trees for embedding for R, config, centrality class
+    TTree* MatchedConstituentTree = 0;
+    if (i < fMatchedJetConstituentTreeRC.size() && iConfig < fMatchedJetConstituentTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fMatchedJetConstituentTreeRC[i][iConfig].size())
+      MatchedConstituentTree = fMatchedJetConstituentTreeRC[i][iConfig][ciTree];
+    
+    TTree* UnmatchedConstituentTree = 0;
+    if (i < fUnmatchedJetConstituentTreeRC.size() && iConfig < fUnmatchedJetConstituentTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fUnmatchedJetConstituentTreeRC[i][iConfig].size())
+      UnmatchedConstituentTree = fUnmatchedJetConstituentTreeRC[i][iConfig][ciTree];
+
+    TTree* MCConstituentTree = 0;
+    if (i < fMCJetConstituentTreeRC.size() && iConfig < fMCJetConstituentTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fMCJetConstituentTreeRC[i][iConfig].size())
+      MCConstituentTree = fMCJetConstituentTreeRC[i][iConfig][ciTree];
+    
+    TTree* EECTree_matched = 0;
+    if (i < fEECTreematchedRC.size() && iConfig < fEECTreematchedRC[i].size() && ciTree >= 0 && ciTree < (int)fEECTreematchedRC[i][iConfig].size())
+      EECTree_matched = fEECTreematchedRC[i][iConfig][ciTree];
+
+    TTree* EECTree_MC = 0;
+    if (i < fEECTree_MC_RC.size() && iConfig < fEECTree_MC_RC[i].size() && ciTree >= 0 && ciTree < (int)fEECTree_MC_RC[i][iConfig].size())
+      EECTree_MC = fEECTree_MC_RC[i][iConfig][ciTree];
+
+    TTree* EECTree_unmatched = 0;
+    if (i < fEECTreeunmatchedRC.size() && iConfig < fEECTreeunmatchedRC[i].size() && ciTree >= 0 && ciTree < (int)fEECTreeunmatchedRC[i][iConfig].size())
+      EECTree_unmatched = fEECTreeunmatchedRC[i][iConfig][ciTree];
+
+    
+    TH1D* hEEC_matched_5_10 = 0;
+    if (i < fHistEEC_matched_5_10.size() && iConfig < fHistEEC_matched_5_10[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_5_10[i][iConfig].size())
+      hEEC_matched_5_10 = fHistEEC_matched_5_10[i][iConfig][ciTree];
+
+    TH1D* hEEC_matched_10_15 = 0;
+    if (i < fHistEEC_matched_10_15.size() && iConfig < fHistEEC_matched_10_15[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_10_15[i][iConfig].size())
+      hEEC_matched_10_15 = fHistEEC_matched_10_15[i][iConfig][ciTree];
+
+    TH1D* hEEC_matched_15_20 = 0;
+    if (i < fHistEEC_matched_15_20.size() && iConfig < fHistEEC_matched_15_20[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_15_20[i][iConfig].size())
+      hEEC_matched_15_20 = fHistEEC_matched_15_20[i][iConfig][ciTree];
+
+    TH1D* hEEC_matched_20_30 = 0;
+    if (i < fHistEEC_matched_20_30.size() && iConfig < fHistEEC_matched_20_30[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_20_30[i][iConfig].size())
+      hEEC_matched_20_30 = fHistEEC_matched_20_30[i][iConfig][ciTree];
+
+    TH1D* hEEC_matched_30_50 = 0;
+    if (i < fHistEEC_matched_30_50.size() && iConfig < fHistEEC_matched_30_50[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_30_50[i][iConfig].size())
+      hEEC_matched_30_50 = fHistEEC_matched_30_50[i][iConfig][ciTree];
+
+    TH1D* hEEC_matched_50_100 = 0;
+    if (i < fHistEEC_matched_50_100.size() && iConfig < fHistEEC_matched_50_100[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_matched_50_100[i][iConfig].size())
+      hEEC_matched_50_100 = fHistEEC_matched_50_100[i][iConfig][ciTree];
+
+    TH1D* hEEC_MC_5_10 = 0;
+    if (i < fHistEEC_MC_5_10.size() && iConfig < fHistEEC_MC_5_10[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_5_10[i][iConfig].size())
+      hEEC_MC_5_10 = fHistEEC_MC_5_10[i][iConfig][ciTree];
+
+    TH1D* hEEC_MC_10_15 = 0;
+    if (i < fHistEEC_MC_10_15.size() && iConfig < fHistEEC_MC_10_15[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_10_15[i][iConfig].size())
+      hEEC_MC_10_15 = fHistEEC_MC_10_15[i][iConfig][ciTree];
+
+    TH1D* hEEC_MC_15_20 = 0;
+    if (i < fHistEEC_MC_15_20.size() && iConfig < fHistEEC_MC_15_20[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_15_20[i][iConfig].size())
+      hEEC_MC_15_20 = fHistEEC_MC_15_20[i][iConfig][ciTree];
+
+    TH1D* hEEC_MC_20_30 = 0;
+    if (i < fHistEEC_MC_20_30.size() && iConfig < fHistEEC_MC_20_30[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_20_30[i][iConfig].size())
+      hEEC_MC_20_30 = fHistEEC_MC_20_30[i][iConfig][ciTree];
+
+    TH1D* hEEC_MC_30_50 = 0;
+    if (i < fHistEEC_MC_30_50.size() && iConfig < fHistEEC_MC_30_50[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_30_50[i][iConfig].size())
+      hEEC_MC_30_50 = fHistEEC_MC_30_50[i][iConfig][ciTree];
+
+    TH1D* hEEC_MC_50_100 = 0;
+    if (i < fHistEEC_MC_50_100.size() && iConfig < fHistEEC_MC_50_100[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_50_100[i][iConfig].size())
+      hEEC_MC_50_100 = fHistEEC_MC_50_100[i][iConfig][ciTree];
+    
+      
+    TH1D* hEEC_unmatched_5_10 = 0;
+    if (i < fHistEEC_unmatched_5_10.size() && iConfig < fHistEEC_unmatched_5_10[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_5_10[i][iConfig].size())
+      hEEC_unmatched_5_10 = fHistEEC_unmatched_5_10[i][iConfig][ciTree];
+    
+    TH1D* hEEC_unmatched_10_15 = 0;
+    if (i < fHistEEC_unmatched_10_15.size() && iConfig < fHistEEC_unmatched_10_15[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_10_15[i][iConfig].size())
+      hEEC_unmatched_10_15 = fHistEEC_unmatched_10_15[i][iConfig][ciTree];
+
+    TH1D* hEEC_unmatched_15_20 = 0;
+    if (i < fHistEEC_unmatched_15_20.size() && iConfig < fHistEEC_unmatched_15_20[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_15_20[i][iConfig].size())
+      hEEC_unmatched_15_20 = fHistEEC_unmatched_15_20[i][iConfig][ciTree];
+
+    TH1D* hEEC_unmatched_20_30 = 0;
+    if (i < fHistEEC_unmatched_20_30.size() && iConfig < fHistEEC_unmatched_20_30[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_20_30[i][iConfig].size())
+      hEEC_unmatched_20_30 = fHistEEC_unmatched_20_30[i][iConfig][ciTree];
+
+    TH1D* hEEC_unmatched_30_50 = 0;
+    if (i < fHistEEC_unmatched_30_50.size() && iConfig < fHistEEC_unmatched_30_50[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_30_50[i][iConfig].size())
+      hEEC_unmatched_30_50 = fHistEEC_unmatched_30_50[i][iConfig][ciTree];
+
+    TH1D* hEEC_unmatched_50_100 = 0;
+    if (i < fHistEEC_unmatched_50_100.size() && iConfig < fHistEEC_unmatched_50_100[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_50_100[i][iConfig].size())
+      hEEC_unmatched_50_100 = fHistEEC_unmatched_50_100[i][iConfig][ciTree];
+
+    TH1D* hEEC_unmatched_all = 0;
+    if (i < fHistEEC_unmatched_all.size() && iConfig < fHistEEC_unmatched_all[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_all[i][iConfig].size())
+      hEEC_unmatched_all = fHistEEC_unmatched_all[i][iConfig][ciTree];
+    
+
+    //Create EEC histograms for embedding for R, config, centrality class
   
     std::vector<MyJet> myRecoJets;
     if (!vetoReco && !tracks.empty()) {
@@ -827,6 +1642,34 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
           for (const auto& c : constituents) {
             if (c.pt() < 0.1) continue; // Skip very low pT constituents
             if (c.is_pure_ghost()) continue; //Keeps only real constituents, skip ghosts
+
+            /*
+          for(size_t k = 0; k < fMcJet.constituents_pt.size(); ++k){
+          if (fMcJet.constituents_pt[k] < 0.1) continue; // Skip very low pT constituents
+          // Fill MC constituent tree variables here using fMcJet.constituents_px[k], fMcJet.constituents_py[k], etc.
+
+          c_mc_runid = fRunNumber;
+          c_mc_eventid = fEventId;
+          c_mc_ijet = im;
+          c_mc_px = fMcJet.constituents_px[k];
+          c_mc_py = fMcJet.constituents_py[k];
+          c_mc_pz = fMcJet.constituents_pz[k];
+          c_mc_pt = fMcJet.constituents_pt[k];
+          c_mc_E = fMcJet.constituents_E[k];
+          c_mc_eta = fMcJet.constituents_eta[k];
+          c_mc_phi = fMcJet.constituents_phi[k];
+          c_mc_charge = fMcJet.constituents_charge[k];
+          MCConstituentTree->Fill();
+
+          if (c_mc_charge != 0){
+            mc_phi_vector.push_back(c_mc_phi);
+            mc_eta_vector.push_back(c_mc_eta);
+            mc_pt_vector.push_back(c_mc_pt);
+            mc_E_vector.push_back(c_mc_E);
+          }; // Skip neutral constituents
+        }
+            */
+
             c_runid = fRunNumber;
             c_eventid = fEventId;
             c_ijet = j;
@@ -839,35 +1682,19 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
             c_phi = c.phi();
             c_charge = c.user_index(); // Use user_index to store charge information
 
-      
             constituentTree->Fill();
 
-            /*
-            if (tracks == jetTracks){
-              phi_vector.push_back(c_phi);
-              eta_vector.push_back(c_eta);
-              pt_vector.push_back(c_pt);
-              E_vector.push_back(c_E);
-            }
-            if (tracks == fullTracks && c_charge != 0){
-              phi_vector.push_back(c_phi);
-              eta_vector.push_back(c_eta);
-              pt_vector.push_back(c_pt);
-              E_vector.push_back(c_E);
-            }; // Skip neutral constituents
-            */
             if (c_charge != 0){
               phi_vector.push_back(c_phi);
               eta_vector.push_back(c_eta);
               pt_vector.push_back(c_pt);
               E_vector.push_back(c_E);
             }; // Skip neutral constituents
-          
           }
       
           //Calculate EEC and RL
-          for (Long64_t h = 0; h < phi_vector.size(); ++h) {
-            for (Long64_t k = h+1; k < phi_vector.size(); ++k) {
+          for (size_t h = 0; h < phi_vector.size(); ++h) {
+            for (size_t k = h+1; k < phi_vector.size(); ++k) {
               if (h == k) continue; // Don't compare with itself
               // Calculate RL
               eec_ijet = j;
@@ -889,30 +1716,30 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
                 }
                 //cout << "AFTER_____RL: " << RL << "; dEta: " << delta_eta << "; dPhi: " << delta_phi << endl;
               }
-              //eec_1 = E_vector[h] * E_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
-              eec_1 = pt_vector[h] * pt_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
+              //eec_data = E_vector[h] * E_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
+              eec_data = pt_vector[h] * pt_vector[k] / (myRecoJets[j].pt_corr * myRecoJets[j].pt_corr);
               try_EECTree->Fill();
 
 
-              //hEEC->Fill(RL, eec_1); // Fill histogram with RL and EEC value
+              //hEEC->Fill(RL, eec_data); // Fill histogram with RL and EEC value
         
               if (myRecoJets[j].pt_corr >= 5 && myRecoJets[j].pt_corr < 10){
-                hEEC_5_10->Fill(RL, eec_1); // Fill histogram for 5-10 GeV/c jets
+                hEEC_5_10->Fill(RL, eec_data); // Fill histogram for 5-10 GeV/c jets
               }
               if (myRecoJets[j].pt_corr >= 10 && myRecoJets[j].pt_corr < 15){
-                hEEC_10_15->Fill(RL, eec_1); // Fill histogram for 10-15 GeV/c jets
+                hEEC_10_15->Fill(RL, eec_data); // Fill histogram for 10-15 GeV/c jets
               }
               if (myRecoJets[j].pt_corr>= 15 && myRecoJets[j].pt_corr < 20){
-                hEEC_15_20->Fill(RL, eec_1); // Fill histogram for 15-20 GeV/c jets
-                //EEC_low = EEC_low + eec_1;
+                hEEC_15_20->Fill(RL, eec_data); // Fill histogram for 15-20 GeV/c jets
+                //EEC_low = EEC_low + eec_data;
               }
               if (myRecoJets[j].pt_corr>= 20 && myRecoJets[j].pt_corr < 30){
-                hEEC_20_30->Fill(RL, eec_1); // Fill histogram for 20-30 GeV/c jets
-                //EEC_mid = EEC_mid + eec_1;
+                hEEC_20_30->Fill(RL, eec_data); // Fill histogram for 20-30 GeV/c jets
+                //EEC_mid = EEC_mid + eec_data;
               }
               if (myRecoJets[j].pt_corr >= 30 && myRecoJets[j].pt_corr < 50){
-                hEEC_30_50->Fill(RL, eec_1); // Fill histogram for 30-50 GeV/c jets
-                //EEC_high = EEC_high + eec_1;
+                hEEC_30_50->Fill(RL, eec_data); // Fill histogram for 30-50 GeV/c jets
+                //EEC_high = EEC_high + eec_data;
               }
             
             }
@@ -953,8 +1780,14 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
     vector<fastjet::PseudoJet> McJets = McFiducial_cut_selector(Mcjets_all);
     vector<MyJet> myMcJets;
     myMcJets.reserve(McJets.size());
+
     for (size_t j = 0; j < McJets.size(); ++j) {
       myMcJets.push_back(MyJet(McJets[j], 0.0f)); // rho = 0 for truth
+    }
+
+    for (size_t j = 0; j < myMcJets.size(); ++j) {
+      fMcJet = myMcJets[j];
+      if (MCJetTree) MCJetTree->Fill();
     }
     
     //========================= MC–Reco matching ===========================//
@@ -963,7 +1796,6 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
 
     for (size_t im = 0; im < MatchedJets.size(); ++im) {
       const MatchedJetPair& mp = MatchedJets[im];
-
       fMcJet   = mp.first;
       fRecoJet = mp.second;
       fDeltaR  = fMcJet.deltaR(fRecoJet);
@@ -974,6 +1806,258 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
       if (jetTree && (haveMC || haveReco)) {
           jetTree->Fill();
       }
+
+      //Constituent-level studies for matched jets + EEC calculation
+      if (haveMC && haveReco) {
+        
+        for(size_t k = 0; k < fMcJet.constituents_pt.size(); ++k){
+          if (fMcJet.constituents_pt[k] < 0.1) continue; // Skip very low pT constituents
+          // Fill MC constituent tree variables here using fMcJet.constituents_px[k], fMcJet.constituents_py[k], etc.
+
+          c_mc_runid = fRunNumber;
+          c_mc_eventid = fEventId;
+          c_mc_ijet = im;
+          c_mc_px = fMcJet.constituents_px[k];
+          c_mc_py = fMcJet.constituents_py[k];
+          c_mc_pz = fMcJet.constituents_pz[k];
+          c_mc_pt = fMcJet.constituents_pt[k];
+          c_mc_E = fMcJet.constituents_E[k];
+          c_mc_eta = fMcJet.constituents_eta[k];
+          c_mc_phi = fMcJet.constituents_phi[k];
+          c_mc_charge = fMcJet.constituents_charge[k];
+          MCConstituentTree->Fill();
+
+          if (c_mc_charge != 0){
+            mc_phi_vector.push_back(c_mc_phi);
+            mc_eta_vector.push_back(c_mc_eta);
+            mc_pt_vector.push_back(c_mc_pt);
+            mc_E_vector.push_back(c_mc_E);
+          }; // Skip neutral constituents
+        }
+
+        for(size_t k = 0; k < fRecoJet.constituents_pt.size(); ++k){
+          if (fRecoJet.constituents_pt[k] < 0.1) continue; // Skip very low pT constituents
+          // Fill matched constituent tree variables here using fRecoJet.constituents_px[k], fRecoJet.constituents_py[k], etc.
+
+          c_matched_runid = fRunNumber;
+          c_matched_eventid = fEventId;
+          c_matched_ijet = im;
+          c_matched_px = fRecoJet.constituents_px[k];
+          c_matched_py = fRecoJet.constituents_py[k];
+          c_matched_pz = fRecoJet.constituents_pz[k];
+          c_matched_pt = fRecoJet.constituents_pt[k];
+          c_matched_E = fRecoJet.constituents_E[k];
+          c_matched_eta = fRecoJet.constituents_eta[k];
+          c_matched_phi = fRecoJet.constituents_phi[k];
+          c_matched_charge = fRecoJet.constituents_charge[k];
+
+          MatchedConstituentTree->Fill();
+
+          if(c_matched_charge != 0){
+            matched_phi_vector.push_back(c_matched_phi);
+            matched_eta_vector.push_back(c_matched_eta);
+            matched_pt_vector.push_back(c_matched_pt);
+            matched_E_vector.push_back(c_matched_E);
+          }; // Skip neutral constituents
+        }
+
+        for (size_t k = 0; k < mc_phi_vector.size(); ++k) {
+          for(size_t l = k+1; l<mc_phi_vector.size(); ++l){
+            // Calculate RL for MC constituents
+            eec_mc_ijet = im;
+            eec_mc_eventid = fEventId;
+            eec_mc_runid = fRunNumber;
+            
+            double mc_delta_phi = mc_phi_vector[k] - mc_phi_vector[l];
+            double mc_delta_eta = mc_eta_vector[k] - mc_eta_vector[l];
+            RL_mc = sqrt(mc_delta_phi * mc_delta_phi + mc_delta_eta * mc_delta_eta);
+            if (RL_mc > 0.8) {
+              if (mc_delta_phi <= -TMath::Pi()) {
+                mc_delta_phi = mc_delta_phi + TMath::TwoPi();
+                RL_mc = sqrt(mc_delta_phi * mc_delta_phi + mc_delta_eta * mc_delta_eta);
+              }
+              if (mc_delta_phi >= TMath::Pi()) { 
+                mc_delta_phi = mc_delta_phi - TMath::TwoPi();
+                RL_mc = sqrt(mc_delta_phi * mc_delta_phi + mc_delta_eta * mc_delta_eta);
+              }
+            }
+            eec_mc = mc_pt_vector[k] * mc_pt_vector[l] / (fMcJet.pt * fMcJet.pt);
+            // Fill MC EEC tree or histogram here using RL_mc and eec_mc
+            EECTree_MC->Fill();
+
+            if (fMcJet.pt >= 5 && fMcJet.pt < 10){
+              hEEC_MC_5_10->Fill(RL_mc, eec_mc); // Fill histogram for 5-10 GeV/c jets
+            }
+
+            if (fMcJet.pt >= 10 && fMcJet.pt < 15){
+              hEEC_MC_10_15->Fill(RL_mc, eec_mc); // Fill histogram for 10-15 GeV/c jets
+            }
+
+            if (fMcJet.pt >= 15 && fMcJet.pt < 20){
+              hEEC_MC_15_20->Fill(RL_mc, eec_mc); // Fill histogram for 15-20 GeV/c jets
+            }
+
+            if (fMcJet.pt >= 20 && fMcJet.pt < 30){
+              hEEC_MC_20_30->Fill(RL_mc, eec_mc); // Fill histogram for 20-30 GeV/c jets
+            }
+
+            if (fMcJet.pt >= 30 && fMcJet.pt < 50){
+              hEEC_MC_30_50->Fill(RL_mc, eec_mc); // Fill histogram for 30-50 GeV/c jets
+            }
+
+            if (fMcJet.pt >= 50 && fMcJet.pt < 100){
+              hEEC_MC_50_100->Fill(RL_mc, eec_mc); // Fill histogram for 50-100 GeV/c jets
+            }
+          }
+        }
+
+        for(size_t k = 0; k < matched_phi_vector.size(); ++k){
+          for(size_t l = k+1; l<matched_phi_vector.size(); ++l){
+            // Calculate RL for matched constituents
+            eec_matched_ijet = im;
+            eec_matched_eventid = fEventId;
+            eec_matched_runid = fRunNumber;
+            
+            double matched_delta_phi = matched_phi_vector[k] - matched_phi_vector[l];
+            double matched_delta_eta = matched_eta_vector[k] - matched_eta_vector[l];
+            RL_matched = sqrt(matched_delta_phi * matched_delta_phi + matched_delta_eta * matched_delta_eta);
+            if (RL_matched > 0.8) {
+              if (matched_delta_phi <= -TMath::Pi()) {
+                matched_delta_phi = matched_delta_phi + TMath::TwoPi();
+                RL_matched = sqrt(matched_delta_phi * matched_delta_phi + matched_delta_eta * matched_delta_eta);
+              }
+              if (matched_delta_phi >= TMath::Pi()) { 
+                matched_delta_phi = matched_delta_phi - TMath::TwoPi();
+                RL_matched = sqrt(matched_delta_phi * matched_delta_phi + matched_delta_eta * matched_delta_eta);
+              }
+            }
+            eec_matched = matched_pt_vector[k] * matched_pt_vector[l] / (fRecoJet.pt_corr * fRecoJet.pt_corr);
+            // Fill Matched EEC tree or histogram here using RL_matched and eec_matched
+            EECTree_matched->Fill();
+
+            if (fRecoJet.pt_corr >= 5 && fRecoJet.pt_corr < 10){
+              hEEC_matched_5_10->Fill(RL_matched, eec_matched); // Fill histogram for 5-10 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 10 && fRecoJet.pt_corr < 15){
+              hEEC_matched_10_15->Fill(RL_matched, eec_matched); // Fill histogram for 10-15 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 15 && fRecoJet.pt_corr < 20){
+              hEEC_matched_15_20->Fill(RL_matched, eec_matched); // Fill histogram for 15-20 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 20 && fRecoJet.pt_corr < 30){
+              hEEC_matched_20_30->Fill(RL_matched, eec_matched); // Fill histogram for 20-30 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 30 && fRecoJet.pt_corr < 50){
+              hEEC_matched_30_50->Fill(RL_matched, eec_matched); // Fill histogram for 30-50 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 50 && fRecoJet.pt_corr < 100){
+              hEEC_matched_50_100->Fill(RL_matched, eec_matched); // Fill histogram for 50-100 GeV/c jets
+            }
+          }
+        }
+        mc_phi_vector.clear();
+        mc_eta_vector.clear();
+        mc_pt_vector.clear();
+        mc_E_vector.clear();
+
+        matched_phi_vector.clear();
+        matched_eta_vector.clear();
+        matched_pt_vector.clear();
+        matched_E_vector.clear(); 
+      }
+      if (!haveMC && haveReco){
+        for (size_t k = 0; k < fRecoJet.constituents_pt.size(); ++k) {
+          if (fRecoJet.constituents_pt[k] < 0.1) continue; // Skip very low pT constituents
+          // Fill unmatched constituent tree variables here using fRecoJet.constituents_px[k], fRecoJet.constituents_py[k], etc.
+
+          c_unmatched_runid = fRunNumber;
+          c_unmatched_eventid = fEventId;
+          c_unmatched_ijet = im;
+          c_unmatched_px = fRecoJet.constituents_px[k];
+          c_unmatched_py = fRecoJet.constituents_py[k];
+          c_unmatched_pz = fRecoJet.constituents_pz[k];
+          c_unmatched_pt = fRecoJet.constituents_pt[k];
+          c_unmatched_E = fRecoJet.constituents_E[k];
+          c_unmatched_eta = fRecoJet.constituents_eta[k];
+          c_unmatched_phi = fRecoJet.constituents_phi[k];
+          c_unmatched_charge = fRecoJet.constituents_charge[k];
+
+          UnmatchedConstituentTree->Fill();
+
+          if(c_unmatched_charge != 0){
+            unmatched_phi_vector.push_back(c_unmatched_phi);
+            unmatched_eta_vector.push_back(c_unmatched_eta);
+            unmatched_pt_vector.push_back(c_unmatched_pt);
+            unmatched_E_vector.push_back(c_unmatched_E);
+          }; // Skip neutral constituents
+        }
+        
+        for (size_t k = 0; k < unmatched_phi_vector.size(); ++k) {
+          for (size_t l = k+1; l < unmatched_phi_vector.size(); ++l) {
+            // Calculate RL for unmatched constituents
+            eec_unmatched_ijet = im;
+            eec_unmatched_eventid = fEventId;
+            eec_unmatched_runid = fRunNumber;
+
+            double unmatched_delta_phi = unmatched_phi_vector[k] - unmatched_phi_vector[l];
+            double unmatched_delta_eta = unmatched_eta_vector[k] - unmatched_eta_vector[l];
+            RL_unmatched = sqrt(unmatched_delta_phi * unmatched_delta_phi + unmatched_delta_eta * unmatched_delta_eta);
+            if (RL_unmatched > 0.8) {
+              if (unmatched_delta_phi <= -TMath::Pi()) {
+                unmatched_delta_phi = unmatched_delta_phi + TMath::TwoPi();
+                RL_unmatched = sqrt(unmatched_delta_phi * unmatched_delta_phi + unmatched_delta_eta * unmatched_delta_eta);
+              }
+              if (unmatched_delta_phi >= TMath::Pi()) { 
+                unmatched_delta_phi = unmatched_delta_phi - TMath::TwoPi();
+                RL_unmatched = sqrt(unmatched_delta_phi * unmatched_delta_phi + unmatched_delta_eta * unmatched_delta_eta);
+              }
+            }
+            eec_unmatched = unmatched_pt_vector[k] * unmatched_pt_vector[l] / (fRecoJet.pt_corr * fRecoJet.pt_corr);
+            // Fill Unmatched EEC tree or histogram here using RL_unmatched and eec_unmatched
+            // You can create a separate tree or histogram for unmatched jets if needed
+
+
+            EECTree_unmatched->Fill();
+            hEEC_unmatched_all->Fill(RL_unmatched, eec_unmatched); // Fill histogram for all unmatched jets
+
+            if (fRecoJet.pt_corr >= 5 && fRecoJet.pt_corr < 10){
+              hEEC_unmatched_5_10->Fill(RL_unmatched, eec_unmatched); // Fill histogram for 5-10 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 10 && fRecoJet.pt_corr < 15){
+              hEEC_unmatched_10_15->Fill(RL_unmatched, eec_unmatched); // Fill histogram for 10-15 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 15 && fRecoJet.pt_corr < 20){
+              hEEC_unmatched_15_20->Fill(RL_unmatched, eec_unmatched); // Fill histogram for 15-20 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 20 && fRecoJet.pt_corr < 30){
+              hEEC_unmatched_20_30->Fill(RL_unmatched, eec_unmatched); // Fill histogram for 20-30 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 30 && fRecoJet.pt_corr < 50){
+              hEEC_unmatched_30_50->Fill(RL_unmatched, eec_unmatched); // Fill histogram for 30-50 GeV/c jets
+            }
+
+            if (fRecoJet.pt_corr >= 50 && fRecoJet.pt_corr < 100){
+              hEEC_unmatched_50_100->Fill(RL_unmatched, eec_unmatched); // Fill histogram for 50-100 GeV/c jets
+            }
+          }
+        }
+
+        unmatched_phi_vector.clear();
+        unmatched_eta_vector.clear();
+        unmatched_pt_vector.clear();
+        unmatched_E_vector.clear();
+      }
+      
+
     } // end loop over MatchedJets
 
   } else {

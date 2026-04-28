@@ -21,6 +21,15 @@ public:
   float neutral_fraction;
   bool trigger_match;
 
+  std::vector<float> constituents_px;
+  std::vector<float> constituents_py;
+  std::vector<float> constituents_pz;
+  std::vector<float> constituents_pt;
+  std::vector<float> constituents_E;
+  std::vector<float> constituents_eta;
+  std::vector<float> constituents_phi;
+  std::vector<int> constituents_charge;
+
   MyJet()
       : pt(-999), pt_corr(-999), eta(-999), phi(-999), area(-999), rho(-999), pt_lead(-999),
         n_constituents(-999), n_constituents_real(-999), neutral_fraction(-999), trigger_match(false) {}
@@ -50,13 +59,20 @@ MyJet(fastjet::PseudoJet jet, float rho)
   area = jet.area_4vector().pt(); 
   pt_corr = pt - area * rho;
 
-  vector<fastjet::PseudoJet> constituents = sorted_by_pt(jet.constituents());
+  std::vector<fastjet::PseudoJet> constituents = sorted_by_pt(jet.constituents());
   n_constituents = constituents.size();
 
   n_constituents_real = 0;
   for (const auto &constituent : constituents) {
     if (!constituent.is_pure_ghost()) { // charged constituent
       n_constituents_real++;
+      constituents_px.push_back(constituent.px());
+      constituents_py.push_back(constituent.py());
+      constituents_pz.push_back(constituent.pz());
+      constituents_pt.push_back(constituent.perp());
+      constituents_E.push_back(constituent.E());
+      constituents_eta.push_back(constituent.eta());
+      constituents_phi.push_back(constituent.phi());
     }
   }
   
@@ -79,6 +95,7 @@ MyJet(fastjet::PseudoJet jet, float rho)
     //if (uidx == 9999) trigger_match = true;
     if (uidx == 0 || uidx == 9999)
       neutral_sum += constituent.perp();
+    constituents_charge.push_back(constituent.user_index());
   }
   neutral_fraction = neutral_sum / pt;
 }
