@@ -1642,34 +1642,6 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
           for (const auto& c : constituents) {
             if (c.pt() < 0.1) continue; // Skip very low pT constituents
             if (c.is_pure_ghost()) continue; //Keeps only real constituents, skip ghosts
-
-            /*
-          for(size_t k = 0; k < fMcJet.constituents_pt.size(); ++k){
-          if (fMcJet.constituents_pt[k] < 0.1) continue; // Skip very low pT constituents
-          // Fill MC constituent tree variables here using fMcJet.constituents_px[k], fMcJet.constituents_py[k], etc.
-
-          c_mc_runid = fRunNumber;
-          c_mc_eventid = fEventId;
-          c_mc_ijet = im;
-          c_mc_px = fMcJet.constituents_px[k];
-          c_mc_py = fMcJet.constituents_py[k];
-          c_mc_pz = fMcJet.constituents_pz[k];
-          c_mc_pt = fMcJet.constituents_pt[k];
-          c_mc_E = fMcJet.constituents_E[k];
-          c_mc_eta = fMcJet.constituents_eta[k];
-          c_mc_phi = fMcJet.constituents_phi[k];
-          c_mc_charge = fMcJet.constituents_charge[k];
-          MCConstituentTree->Fill();
-
-          if (c_mc_charge != 0){
-            mc_phi_vector.push_back(c_mc_phi);
-            mc_eta_vector.push_back(c_mc_eta);
-            mc_pt_vector.push_back(c_mc_pt);
-            mc_E_vector.push_back(c_mc_E);
-          }; // Skip neutral constituents
-        }
-            */
-
             c_runid = fRunNumber;
             c_eventid = fEventId;
             c_ijet = j;
