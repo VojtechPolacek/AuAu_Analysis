@@ -202,6 +202,9 @@ private:
   std::vector<std::vector<std::vector<TTree*>>> fUnmatchedJetConstituentTreeRC; // member of StPicoHFJetMaker
   std::vector<std::vector<std::vector<TTree*>>> fMCJetConstituentTreeRC; // member of StPicoHFJetMaker
 
+  std::vector<std::vector<std::vector<TTree*>>> fConeConstituentTreeRC; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TTree*>>> fConeEECTreeRC; // member of StPicoHFJetMaker
+
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_MC_5_10; // member of StPicoHFJetMaker
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_MC_10_15; // member of StPicoHFJetMaker
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_MC_15_20; // member of StPicoHFJetMaker
@@ -224,7 +227,8 @@ private:
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_unmatched_50_100; // member of StPicoHFJetMaker
 
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_unmatched_all; // member of StPicoHFJetMaker
-
+  
+  std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_cone; // member of StPicoHFJetMaker
   // store 3-class mapping per event (0=undef, 1=central, 2=midcentral, 3=peripheral)
   int fCentrality3;
 
