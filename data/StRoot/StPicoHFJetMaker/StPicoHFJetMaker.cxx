@@ -37,6 +37,19 @@ const char* kCentTag[4] = { // centrality classes
 
 const std::vector<TString> StPicoHFJetMaker::fConfigNames = {"full", "charged"}; // configurations for jet finding and background estimation
 
+float matched_jet_pt, matched_jet_eta, matched_jet_phi;
+int matched_jet_n_constituents;
+int matched_jet_eventid, matched_jet_runid;
+
+
+float unmatched_jet_pt, unmatched_jet_eta, unmatched_jet_phi;
+int unmatched_jet_n_constituents;
+int unmatched_jet_eventid, unmatched_jet_runid;
+
+float cone_pt, cone_eta, cone_phi;
+int cone_n_constituents;
+int cone_eventid, cone_runid;
+
 std::vector<float> phi_vector;
 std::vector<float> eta_vector;
 std::vector<float> E_vector;
@@ -207,6 +220,14 @@ int StPicoHFJetMaker::InitJets() {
 
   MCJetTreeRC.clear();
   MCJetTreeRC.reserve(fR.size());
+
+  fMatchedJetTreeRC.clear();
+  fMatchedJetTreeRC.reserve(fR.size());
+  fUnmatchedJetTreeRC.clear();
+  fUnmatchedJetTreeRC.reserve(fR.size());
+  fConeJetTreeRC.clear();
+  fConeJetTreeRC.reserve(fR.size());
+
   //Constituent trees and EEC trees for data
   fConstituentTreeRC.clear();
   fConstituentTreeRC.reserve(fR.size());
@@ -289,6 +310,8 @@ int StPicoHFJetMaker::InitJets() {
   fHistEEC_unmatched_50_100.clear();
   fHistEEC_unmatched_50_100.reserve(fR.size());
   
+  fHistEEC_MC_all.clear();
+  fHistEEC_MC_all.reserve(fR.size());
   fHistEEC_unmatched_all.clear();
   fHistEEC_unmatched_all.reserve(fR.size());
 
@@ -323,6 +346,10 @@ int StPicoHFJetMaker::InitJets() {
 
     std::vector<std::vector<TTree*>> MCJetTreeConfig;
     MCJetTreeConfig.reserve(2);
+    std::vector<std::vector<TTree*>> MatchedJetTreeConfig;
+    MatchedJetTreeConfig.reserve(2);
+    std::vector<std::vector<TTree*>> UnmatchedJetTreeConfig;
+    UnmatchedJetTreeConfig.reserve(2);
 
     std::vector<std::vector<TTree*>> ConstituentTreeConfig;
     ConstituentTreeConfig.reserve(2);
@@ -352,6 +379,9 @@ int StPicoHFJetMaker::InitJets() {
     std::vector<std::vector<TTree*>> MCJetConstituentTreeConfig;
     MCJetConstituentTreeConfig.reserve(2);
     
+
+    std::vector<std::vector<TTree*>> ConeJetTreeConfig;
+    ConeJetTreeConfig.reserve(2);
     std::vector<std::vector<TTree*>> ConeConstituentTreeConfig;
     ConeConstituentTreeConfig.reserve(2);
     std::vector<std::vector<TTree*>> ConeEECTreeConfig;
@@ -396,6 +426,9 @@ int StPicoHFJetMaker::InitJets() {
     std::vector<std::vector<TH1D*>> HistEEC_unmatched_50_100_Config;
     HistEEC_unmatched_50_100_Config.reserve(2);
 
+
+    std::vector<std::vector<TH1D*>> HistEEC_MC_all_Config;
+    HistEEC_MC_all_Config.reserve(2);
     std::vector<std::vector<TH1D*>> HistEEC_unmatched_all_Config;
     HistEEC_unmatched_all_Config.reserve(2);
 
@@ -413,6 +446,10 @@ int StPicoHFJetMaker::InitJets() {
 
       std::vector<TTree*> MCJetTreeC;  // 3 classes: 1..3 (we'll index 0..2)
       MCJetTreeC.reserve(3);
+      std::vector<TTree*> MatchedJetTreeC;  // 3 classes: 1..3 (we'll index 0..2)
+      MatchedJetTreeC.reserve(3);
+      std::vector<TTree*> UnmatchedJetTreeC;  // 3 classes: 1..3 (we'll index 0..2)
+      UnmatchedJetTreeC.reserve(3);
 
       std::vector<TTree*> ConstituentTreeC; // member of StPicoHFJetMaker
       ConstituentTreeC.reserve(3);
@@ -446,6 +483,8 @@ int StPicoHFJetMaker::InitJets() {
       std::vector<TTree*> MCJetConstituentTreeC; // member of StPicoHFJetMaker
       MCJetConstituentTreeC.reserve(3);
 
+      std::vector<TTree*> ConeJetTreeC; // member of StPicoHFJetMaker
+      ConeJetTreeC.reserve(3);
       std::vector<TTree*> ConeConstituentTreeC; // member of StPicoHFJetMaker
       ConeConstituentTreeC.reserve(3);
       std::vector<TTree*> ConeEECTreeC; // member of StPicoHFJetMaker
@@ -490,6 +529,8 @@ int StPicoHFJetMaker::InitJets() {
       std::vector<TH1D*> Hist_EEC_unmatched_50_100_C; // member of StPicoHFJetMaker
       Hist_EEC_unmatched_50_100_C.reserve(3);
       
+      std::vector<TH1D*> Hist_EEC_MC_all_C; // member of StPicoHFJetMaker
+      Hist_EEC_MC_all_C.reserve(3);
       std::vector<TH1D*> Hist_EEC_unmatched_all_C; // member of StPicoHFJetMaker
       Hist_EEC_unmatched_all_C.reserve(3);
 
@@ -595,6 +636,39 @@ int StPicoHFJetMaker::InitJets() {
           MCJetTree->Branch("mc_n_constituents_real", &fMcJet.n_constituents_real, "mc_n_constituents_real/I");
 
           MCJetTreeC.push_back(MCJetTree);
+
+          TTree* MatchedJetTree = new TTree("MatchedJetTree", "Matched Jet Tree");
+          //MatchedJetTree->SetDirectory(0); // detach from file - won't be auto-saved
+          MatchedJetTree->Branch("runId", &matched_jet_runid, "runId/I");
+          MatchedJetTree->Branch("eventId", &matched_jet_eventid,   "eventId/I");
+          MatchedJetTree->Branch("matched_jet_pt", &matched_jet_pt, "matched_jet_pt/F");
+          MatchedJetTree->Branch("matched_jet_eta", &matched_jet_eta, "matched_jet_eta/F");
+          MatchedJetTree->Branch("matched_jet_phi", &matched_jet_phi, "matched_jet_phi/F");
+          MatchedJetTree->Branch("matched_jet_n_constituents", &matched_jet_n_constituents, "matched_jet_n_constituents/I");
+          
+          MatchedJetTreeC.push_back(MatchedJetTree);
+
+          TTree* UnmatchedJetTree = new TTree("UnmatchedJetTree", "Unmatched Jet Tree");
+          //UnmatchedJetTree->SetDirectory(0); // detach from file - won't be auto-saved
+          UnmatchedJetTree->Branch("runId", &unmatched_jet_runid, "runId/I");
+          UnmatchedJetTree->Branch("eventId", &unmatched_jet_eventid,   "eventId/I");
+          UnmatchedJetTree->Branch("unmatched_jet_pt", &unmatched_jet_pt, "unmatched_jet_pt/F");
+          UnmatchedJetTree->Branch("unmatched_jet_eta", &unmatched_jet_eta, "unmatched_jet_eta/F");
+          UnmatchedJetTree->Branch("unmatched_jet_phi", &unmatched_jet_phi, "unmatched_jet_phi/F");
+          UnmatchedJetTree->Branch("unmatched_jet_n_constituents", &unmatched_jet_n_constituents, "unmatched_jet_n_constituents/I");
+
+          UnmatchedJetTreeC.push_back(UnmatchedJetTree);
+
+          TTree* ConeJetTree = new TTree("ConeJetTree", "Cone Jet Tree");
+          //ConeJetTree->SetDirectory(0); // detach from file - won't be auto-saved
+          ConeJetTree->Branch("runId", &cone_runid, "runId/I");
+          ConeJetTree->Branch("eventId", &cone_eventid,   "eventId/I");
+          ConeJetTree->Branch("cone_jet_pt", &cone_pt, "cone_jet_pt/F");
+          ConeJetTree->Branch("cone_jet_eta", &cone_eta, "cone_jet_eta/F");
+          ConeJetTree->Branch("cone_jet_phi", &cone_phi, "cone_jet_phi/F");
+          ConeJetTree->Branch("cone_jet_n_constituents", &cone_n_constituents, "cone_jet_n_constituents/I");
+
+          ConeJetTreeC.push_back(ConeJetTree);
 
           TTree* MatchedJet_constituentTree = new TTree("MatchedJet_ConstituentTree", "Constituents of Matched Jets");
           MatchedJet_constituentTree->SetDirectory(0); // detach from file - won't be auto-saved
@@ -744,6 +818,8 @@ int StPicoHFJetMaker::InitJets() {
           TH1D* hEEC_unmatched_50_100 = new TH1D("hEEC_unmatched_50_100", "EEC vs RL for Unmatched Reco Jets with 50<=pT<100;RL;EEC", nBinsEEC, EEC_bounds);
           Hist_EEC_unmatched_50_100_C.push_back(hEEC_unmatched_50_100);
 
+          TH1D* hEEC_MC_all = new TH1D("hEEC_MC_all", "EEC vs RL for All MC Jets;RL;EEC", nBinsEEC, EEC_bounds);
+          Hist_EEC_MC_all_C.push_back(hEEC_MC_all);
           TH1D* hEEC_unmatched_all = new TH1D("hEEC_unmatched_all", "EEC vs RL for All Unmatched Reco Jets;RL;EEC", nBinsEEC, EEC_bounds);
           Hist_EEC_unmatched_all_C.push_back(hEEC_unmatched_all);
 
@@ -766,6 +842,10 @@ int StPicoHFJetMaker::InitJets() {
       }
 
       if (mIsEmbedding) {
+        MatchedJetTreeConfig.push_back(MatchedJetTreeC);
+        UnmatchedJetTreeConfig.push_back(UnmatchedJetTreeC);
+        ConeJetTreeConfig.push_back(ConeJetTreeC);
+
         MCJetTreeConfig.push_back(MCJetTreeC);
         EECTreematchedConfig.push_back(EECTreematchedC);
         EECTreeunmatchedConfig.push_back(EECTreeunmatchedC);
@@ -799,7 +879,7 @@ int StPicoHFJetMaker::InitJets() {
         HistEEC_unmatched_50_100_Config.push_back(Hist_EEC_unmatched_50_100_C);
 
         HistEEC_unmatched_all_Config.push_back(Hist_EEC_unmatched_all_C);
-        
+        HistEEC_MC_all_Config.push_back(Hist_EEC_MC_all_C);
         HistEEC_cone_Config.push_back(Hist_EEC_cone_C);
       }
 
@@ -822,6 +902,9 @@ int StPicoHFJetMaker::InitJets() {
 
     if(mIsEmbedding) {
       MCJetTreeRC.push_back(MCJetTreeConfig);
+      fMatchedJetTreeRC.push_back(MatchedJetTreeConfig);
+      fUnmatchedJetTreeRC.push_back(UnmatchedJetTreeConfig);
+      fConeJetTreeRC.push_back(ConeJetTreeConfig);
 
       fEECTreematchedRC.push_back(EECTreematchedConfig);
       fEECTreeunmatchedRC.push_back(EECTreeunmatchedConfig);
@@ -855,7 +938,7 @@ int StPicoHFJetMaker::InitJets() {
       fHistEEC_unmatched_50_100.push_back(HistEEC_unmatched_50_100_Config);
 
       fHistEEC_unmatched_all.push_back(HistEEC_unmatched_all_Config);
-
+      fHistEEC_MC_all.push_back(HistEEC_MC_all_Config);
       fHistEEC_cone.push_back(HistEEC_cone_Config);
     }
 
@@ -983,6 +1066,24 @@ for (size_t iR = 0; iR < nR; ++iR) {
       
       //Embedding trees and histograms are written for both data and embedding, but only if mIsEmbedding is true. This allows us to have the same output structure for both cases, while only filling the embedding-specific trees and histograms when we are actually running on embedding.
       if(mIsEmbedding){
+        if (iR < fMatchedJetTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)fMatchedJetTreeRC[iR][iConfig].size() &&
+          fMatchedJetTreeRC[iR][iConfig][ciTree]) {
+          fMatchedJetTreeRC[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fUnmatchedJetTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)fUnmatchedJetTreeRC[iR][iConfig].size() &&
+          fUnmatchedJetTreeRC[iR][iConfig][ciTree]) {
+          fUnmatchedJetTreeRC[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fConeJetTreeRC.size() && ciTree >= 0 &&
+          ciTree < (int)fConeJetTreeRC[iR][iConfig].size() &&
+          fConeJetTreeRC[iR][iConfig][ciTree]) {
+          fConeJetTreeRC[iR][iConfig][ciTree]->Write();
+        }
+
       /*
         if(iR < MCJetTreeRC.size() && ciTree >= 0 &&
           ciTree < (int)MCJetTreeRC[iR][iConfig].size() &&
@@ -1279,6 +1380,12 @@ for (size_t iR = 0; iR < nR; ++iR) {
           ciTree < (int)fHistEEC_unmatched_all[iR][iConfig].size() &&
           fHistEEC_unmatched_all[iR][iConfig][ciTree]) {
           fHistEEC_unmatched_all[iR][iConfig][ciTree]->Write();
+        }
+
+        if (iR < fHistEEC_MC_all.size() && ciTree >= 0 &&
+          ciTree < (int)fHistEEC_MC_all[iR][iConfig].size() &&
+          fHistEEC_MC_all[iR][iConfig][ciTree]) {
+          fHistEEC_MC_all[iR][iConfig][ciTree]->Write();
         }
 
         if (iR < fHistEEC_cone.size() && ciTree >= 0 &&
@@ -1629,6 +1736,19 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
 
 
     //Create Trees for embedding for R, config, centrality class
+
+    TTree* MatchedJetTree = 0;
+    if (i < fMatchedJetTreeRC.size() && iConfig < fMatchedJetTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fMatchedJetTreeRC[i][iConfig].size())
+      MatchedJetTree = fMatchedJetTreeRC[i][iConfig][ciTree];
+
+    TTree* UnmatchedJetTree = 0;
+    if (i < fUnmatchedJetTreeRC.size() && iConfig < fUnmatchedJetTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fUnmatchedJetTreeRC[i][iConfig].size())
+      UnmatchedJetTree = fUnmatchedJetTreeRC[i][iConfig][ciTree];
+
+    TTree* ConeJetTree = 0;
+    if (i < fConeJetTreeRC.size() && iConfig < fConeJetTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fConeJetTreeRC[i][iConfig].size())
+      ConeJetTree = fConeJetTreeRC[i][iConfig][ciTree];
+
     TTree* MatchedConstituentTree = 0;
     if (i < fMatchedJetConstituentTreeRC.size() && iConfig < fMatchedJetConstituentTreeRC[i].size() && ciTree >= 0 && ciTree < (int)fMatchedJetConstituentTreeRC[i][iConfig].size())
       MatchedConstituentTree = fMatchedJetConstituentTreeRC[i][iConfig][ciTree];
@@ -1733,6 +1853,10 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
     TH1D* hEEC_unmatched_50_100 = 0;
     if (i < fHistEEC_unmatched_50_100.size() && iConfig < fHistEEC_unmatched_50_100[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_50_100[i][iConfig].size())
       hEEC_unmatched_50_100 = fHistEEC_unmatched_50_100[i][iConfig][ciTree];
+
+    TH1D* hEEC_MC_all = 0;
+    if (i < fHistEEC_MC_all.size() && iConfig < fHistEEC_MC_all[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_MC_all[i][iConfig].size())
+      hEEC_MC_all = fHistEEC_MC_all[i][iConfig][ciTree];
 
     TH1D* hEEC_unmatched_all = 0;
     if (i < fHistEEC_unmatched_all.size() && iConfig < fHistEEC_unmatched_all[i].size() && ciTree >= 0 && ciTree < (int)fHistEEC_unmatched_all[i][iConfig].size())
@@ -1896,12 +2020,21 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
       if (jetTree && (haveMC || haveReco)) {
           jetTree->Fill();
       }
-
       //Constituent-level studies for matched jets + EEC calculation
       if (haveMC && haveReco) {
-        
+        if (fRecoJet.pt_corr < 5.0) continue; // Apply pT cut on matched jets
+        matched_jet_runid = fRunNumber;
+        matched_jet_eventid = fEventId;
+        matched_jet_pt = fRecoJet.pt_corr;
+        matched_jet_eta = fRecoJet.eta;
+        matched_jet_phi = fRecoJet.phi;
+        matched_jet_n_constituents = fRecoJet.constituents_pt.size();
+
+        MatchedJetTree->Fill();
+
+
         for(size_t k = 0; k < fMcJet.constituents_pt.size(); ++k){
-          if (fMcJet.constituents_pt[k] < 0.1) continue; // Skip very low pT constituents
+          if (fMcJet.constituents_pt[k] < 0.2) continue; // Skip very low pT constituents
           // Fill MC constituent tree variables here using fMcJet.constituents_px[k], fMcJet.constituents_py[k], etc.
 
           c_mc_runid = fRunNumber;
@@ -1926,7 +2059,7 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
         }
 
         for(size_t k = 0; k < fRecoJet.constituents_pt.size(); ++k){
-          if (fRecoJet.constituents_pt[k] < 0.1) continue; // Skip very low pT constituents
+          if (fRecoJet.constituents_pt[k] < 0.2) continue; // Skip very low pT constituents
           // Fill matched constituent tree variables here using fRecoJet.constituents_px[k], fRecoJet.constituents_py[k], etc.
 
           c_matched_runid = fRunNumber;
@@ -1975,6 +2108,8 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
             eec_mc = (mc_pt_vector[k] * mc_pt_vector[l]) / (fMcJet.pt * fMcJet.pt);
             // Fill MC EEC tree or histogram here using RL_mc and eec_mc
             EECTree_MC->Fill();
+
+            hEEC_MC_all->Fill(RL_mc, eec_mc); // Fill histogram for all MC jets
 
             if (fMcJet.pt >= 5 && fMcJet.pt < 10){
               hEEC_MC_5_10->Fill(RL_mc, eec_mc); // Fill histogram for 5-10 GeV/c jets
@@ -2061,8 +2196,9 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
         matched_pt_vector.clear();
         matched_E_vector.clear(); 
 
-        float cone_eta = fRecoJet.eta;
-        float cone_phi = fRecoJet.phi + TMath::Pi()/2.0;
+        cone_pt = 0.0;
+        cone_eta = fRecoJet.eta;
+        cone_phi = fRecoJet.phi + TMath::Pi()/2.0;
 
         if (cone_phi > 2.0*TMath::Pi()) cone_phi -= 2*TMath::Pi();
         if (cone_phi < 0) cone_phi += 2*TMath::Pi();
@@ -2087,6 +2223,7 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
           }
         }
 
+
         if (!cone_overlap){
           for (const auto& trk : tracks){
           
@@ -2094,13 +2231,14 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
             double track_cone_eta = trk.eta() - cone_eta;
             double distance_track_cone = sqrt(track_cone_phi * track_cone_phi + track_cone_eta * track_cone_eta);
           
-            if (trk.perp() > 0.1 && distance_track_cone < fR[i]){
+            if (trk.perp() > 0.2 && distance_track_cone < fR[i]){
               c_cone_runid = fRunNumber;
               c_cone_eventid = fEventId;
               c_cone_ijet = im;
               c_cone_pt = trk.perp();
               c_cone_eta = trk.eta();
               c_cone_phi = trk.phi();
+              cone_pt = cone_pt + trk.perp();
 
               ConeConstituenttree->Fill();
 
@@ -2125,7 +2263,7 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
                   cone_delta_phi = cone_delta_phi + TMath::TwoPi();
                   RL_cone = sqrt(cone_delta_phi * cone_delta_phi + cone_delta_eta * cone_delta_eta);
                 }
-                if (cone_delta_phi >= TMath::Pi()) { 
+                if (cone_delta_phi >= TMath::Pi()) {
                   cone_delta_phi = cone_delta_phi - TMath::TwoPi();
                   RL_cone = sqrt(cone_delta_phi * cone_delta_phi + cone_delta_eta * cone_delta_eta);
                 }
@@ -2140,15 +2278,25 @@ for (size_t iConfig = 0; iConfig < jetConfigs.size(); ++iConfig) {
           cone_phi_vector.clear();
           cone_eta_vector.clear();
           cone_pt_vector.clear();
+
+          ConeJetTree->Fill();
         }
       }
 
 
+      if (!haveMC && haveReco && fRecoJet.pt_corr >= 0.1){
+        if (fRecoJet.pt_corr < 5.0) continue; // Apply pT cut on unmatched jets
+        unmatched_jet_runid = fRunNumber;
+        unmatched_jet_eventid = fEventId;
+        unmatched_jet_pt = fRecoJet.pt_corr;
+        unmatched_jet_eta = fRecoJet.eta;
+        unmatched_jet_phi = fRecoJet.phi;
+        unmatched_jet_n_constituents = fRecoJet.constituents_pt.size();
 
-
-      if (!haveMC && haveReco){
+        UnmatchedJetTree->Fill();
+        
         for (size_t k = 0; k < fRecoJet.constituents_pt.size(); ++k) {
-          if (fRecoJet.constituents_pt[k] < 0.1) continue; // Skip very low pT constituents
+          if (fRecoJet.constituents_pt[k] < 0.2) continue; // Skip very low pT constituents
           // Fill unmatched constituent tree variables here using fRecoJet.constituents_px[k], fRecoJet.constituents_py[k], etc.
 
           c_unmatched_runid = fRunNumber;

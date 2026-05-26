@@ -14,8 +14,10 @@
 std::vector<TH1D*> h_EEC_unmatched_vec;
 
 void merge_unmatched(){
-    const char* radii[] = {"R0.2", "R0.3", "R0.4"};
-    const char* types[] = {"full", "charged"};
+    h_EEC_unmatched_vec.clear(); // clear in case of re-running in same session
+
+    const char* radii[]        = {"R0.2", "R0.3", "R0.4"};
+    const char* types[]        = {"full", "charged"};
     const char* centralities[] = {"CENT_0_10", "MID_20_40", "PERI_60_80"};
 
     std::vector<TString> files;
@@ -24,7 +26,7 @@ void merge_unmatched(){
         std::cerr << "Failed to open inlist.txt" << std::endl;
         return;
     }
-    
+
     char line[1024];
     while (fgets(line, sizeof(line), inlist)) {
         TString fname(line);
@@ -35,8 +37,7 @@ void merge_unmatched(){
     fclose(inlist);
     std::cout << "Found " << files.size() << " files to merge." << std::endl;
 
-    TFile* outFile = TFile::Open("/gpfs/mnt/gpfs01/star/pwg/polacvo1/Analysis_AuAu_EEC/trees/unmatched_merged.root", "RECREATE");
-
+    // Initialize vector with nullptr for all 18 combinations
     for (const auto& r : radii)
         for (const auto& t : types)
             for (const auto& c : centralities)
@@ -45,33 +46,37 @@ void merge_unmatched(){
     int nProcessed = 0;
     int ErrorCount = 0;
     int TotalHistograms = 0;
-    float ratio = 0.0;
 
-    for (const auto& fname : files){
+    for (const auto& fname : files) {
         TFile* f = TFile::Open(fname);
-        if (!f){
+        if (!f || f->IsZombie()) {
             std::cerr << "Skipping bad file: " << fname << std::endl;
-            continue; 
+            continue;
         }
+
         int idx = 0;
         for (const auto& r : radii) {
             for (const auto& t : types) {
                 for (const auto& c : centralities) {
                     TString path = Form("%s/%s/%s/hEEC_unmatched_all", r, t, c);
                     TH1D* h = (TH1D*)f->Get(path);
-                    if (!h || h->GetEntries()==0) {
-                        //std::cerr << "Warning: Missing or empty histogram in file " << fname << ": " << path << std::endl;
+
+                    if (!h || h->GetEntries() == 0) {
                         idx++;
                         ErrorCount++;
                         TotalHistograms++;
                         continue;
                     }
-                    if (h_EEC_unmatched_vec[idx] == nullptr){
-                        h_EEC_unmatched_vec[idx] = (TH1D*)h->Clone(Form("hEEC_unmatched_all_%s_%s_%s", r, t, c));
+
+                    if (h_EEC_unmatched_vec[idx] == nullptr) {
+                        // unique name per combination to avoid ROOT name collisions
+                        TString cloneName = Form("hEEC_unmatched_all_%s_%s_%s", r, t, c);
+                        h_EEC_unmatched_vec[idx] = (TH1D*)h->Clone(cloneName);
                         h_EEC_unmatched_vec[idx]->SetDirectory(0);
                     } else {
                         h_EEC_unmatched_vec[idx]->Add(h);
                     }
+
                     idx++;
                     TotalHistograms++;
                 }
@@ -79,23 +84,42 @@ void merge_unmatched(){
         }
         f->Close();
         nProcessed++;
-        if (nProcessed % 100 == 0){
-            ratio = (static_cast<float>(ErrorCount) / TotalHistograms)*100;
-            std::cout << "Processed " << nProcessed  << "/"<< files.size() << " files..." << std::endl;
+        if (nProcessed % 100 == 0) {
+            float ratio = (static_cast<float>(ErrorCount) / TotalHistograms) * 100;
+            std::cout << "Processed " << nProcessed << "/" << files.size() << " files..." << std::endl;
             std::cout << "Current error count: " << ErrorCount << std::endl;
             std::cout << "Total histograms processed so far: " << TotalHistograms << std::endl;
             std::cout << "Current error ratio: " << ratio << " %" << std::endl;
+            std::cout << "-----------------------------------------" << std::endl;
         }
     }
+
+    // Write output file
+    TFile* outFile = TFile::Open("/gpfs/mnt/gpfs01/star/pwg/polacvo1/Analysis_AuAu_EEC/trees/unmatched_merged.root", "RECREATE");
 
     int idx = 0;
     for (const auto& r : radii) {
         for (const auto& t : types) {
             for (const auto& c : centralities) {
                 if (h_EEC_unmatched_vec[idx]) {
-                    outFile->mkdir(Form("%s/%s/%s", r, t, c));
-                    outFile->cd(Form("%s/%s/%s", r, t, c));
-                    h_EEC_unmatched_vec[idx]->Write();
+                    // Create directories level by level
+                    if (!outFile->GetDirectory(r)) outFile->mkdir(r);
+                    TDirectory* rdir = (TDirectory*)outFile->Get(r);
+
+                    if (!rdir->GetDirectory(t)) rdir->mkdir(t);
+                    TDirectory* tdir = (TDirectory*)rdir->Get(t);
+
+                    if (!tdir->GetDirectory(c)) tdir->mkdir(c);
+                    TDirectory* cdir = (TDirectory*)tdir->Get(c);
+
+                    cdir->cd();
+                    int bytes = h_EEC_unmatched_vec[idx]->Write();
+                    if (bytes == 0)
+                        std::cerr << "Warning: Write() returned 0 for " << r << "/" << t << "/" << c << std::endl;
+                    else
+                        std::cout << "Written " << bytes << " bytes for " << r << "/" << t << "/" << c << std::endl;
+
+                    outFile->cd();
                 } else {
                     std::cerr << "No valid histogram to write for " << r << "/" << t << "/" << c << std::endl;
                 }

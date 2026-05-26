@@ -162,7 +162,9 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
 
   picoCuts->setCutDcaMin(1.0);
   picoCuts->setCutEta(1); // default is 1
-  picoCuts->setCutPtRange(0.2, 30.0); // default
+  //picoCuts->setCutPtRange(0.2, 30.0); // default
+  //picoCuts->setCutPtRange(0.5, 30.0); // Adjusted to 0.5 GeV/c to focus on higher pT tracks relevant for jet analysis
+  picoCuts->setCutPtRange(0.2, 30.0); // Adjusted to 0.2 GeV/c to include softer tracks for jet analysis, can be further optimized based on physics needs
   picoCuts->setCutERange(0.2, 30.0);  // In analogy to track pT cut, for towers
 
   vector<float> R; // jet resolution parameters to run, e.g. R = 0.2, 0.3, 0.4

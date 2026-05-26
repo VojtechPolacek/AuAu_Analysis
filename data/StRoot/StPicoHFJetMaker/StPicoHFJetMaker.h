@@ -194,6 +194,9 @@ private:
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_30_50; // member of StPicoHFJetMaker
 
   std::vector<std::vector<std::vector<TTree*>>> MCJetTreeRC; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TTree*>>> fMatchedJetTreeRC; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TTree*>>> fUnmatchedJetTreeRC; // member of StPicoHFJetMaker
+  std::vector<std::vector<std::vector<TTree*>>> fConeJetTreeRC; // member of StPicoHFJetMaker
 
   std::vector<std::vector<std::vector<TTree*>>> fEECTreematchedRC; // member of StPicoHFJetMaker
   std::vector<std::vector<std::vector<TTree*>>> fEECTreeunmatchedRC; // member of StPicoHFJetMaker
@@ -226,6 +229,7 @@ private:
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_unmatched_30_50; // member of StPicoHFJetMaker
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_unmatched_50_100; // member of StPicoHFJetMaker
 
+  std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_MC_all; // member of StPicoHFJetMaker
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_unmatched_all; // member of StPicoHFJetMaker
   
   std::vector<std::vector<std::vector<TH1D*>>> fHistEEC_cone; // member of StPicoHFJetMaker
